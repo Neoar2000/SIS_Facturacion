@@ -1,9 +1,15 @@
 import javax.swing.*;
 import java.awt.*;
+import java.sql.*;
 
 public class Main extends JFrame {
     private JTextField usernameField;
     private JPasswordField passwordField;
+
+    // Datos de conexión a la base de datos MySQL
+    private static final String DB_URL = "jdbc:mysql://127.0.0.1:3306/SIS_Facturacion";
+    private static final String DB_USER = "root";
+    private static final String DB_PASSWORD = "Guitarhero3-*$.";
 
     public Main() {
         setTitle("Sistema de Facturación NEO");
@@ -57,11 +63,23 @@ public class Main extends JFrame {
         String username = usernameField.getText();
         String password = new String(passwordField.getPassword());
 
-        // Verificar las credenciales
-        if (username.equals("admin") && password.equals("123")) {
-            JOptionPane.showMessageDialog(this, "Bienvenido, " + username + "!");
-        } else {
-            JOptionPane.showMessageDialog(this, "Credenciales incorrectas", "Error", JOptionPane.ERROR_MESSAGE);
+        // Establecer la conexión con la base de datos
+        try (Connection connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
+            String query = "SELECT * FROM usuarios WHERE usuario = ? AND contraseña = ?";
+            try (PreparedStatement statement = connection.prepareStatement(query)) {
+                statement.setString(1, username);
+                statement.setString(2, password);
+                ResultSet resultSet = statement.executeQuery();
+
+                if (resultSet.next()) {
+                    JOptionPane.showMessageDialog(this, "Bienvenido, " + username + "!");
+                } else {
+                    JOptionPane.showMessageDialog(this, "Credenciales incorrectas", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error al conectar con la base de datos", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
