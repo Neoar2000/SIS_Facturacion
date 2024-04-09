@@ -3,24 +3,27 @@ import javax.swing.event.CellEditorListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellEditor;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.event.ChangeEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.io.FileWriter;
+import java.io.IOException;
 
 public class FacturacionInterfaz extends JFrame {
 
     private DefaultTableModel tableModel;
-    private JTextField nitCiTextField, nombreTextField;
     private JLabel totalTextArea;
+    private JTextArea reciboTextArea;
 
     // Lista de productos de ejemplo
     private List<Producto> productos = new ArrayList<>();
 
     public FacturacionInterfaz() {
-        setTitle("Sistema de Facturación");
+        setTitle("Sistema Facturación NEO");
         setSize(600, 400);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -34,22 +37,23 @@ public class FacturacionInterfaz extends JFrame {
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BorderLayout());
 
-        // Panel de entrada de datos de cliente
-        JPanel datosClientePanel = new JPanel();
-        datosClientePanel.setLayout(new GridLayout(2, 2));
-        datosClientePanel.setBorder(BorderFactory.createTitledBorder("Datos del Cliente"));
+        // Inicialización de reciboTextArea
+        reciboTextArea = new JTextArea();
+        reciboTextArea.setEditable(false); // Desactivar edición
+        JScrollPane reciboScrollPane = new JScrollPane(reciboTextArea);
 
-        JLabel nitCiLabel = new JLabel("NIT/CI:");
-        nitCiTextField = new JTextField();
-        JLabel nombreLabel = new JLabel("Nombre:");
-        nombreTextField = new JTextField();
+        mainPanel.add(reciboScrollPane, BorderLayout.CENTER);
 
-        datosClientePanel.add(nitCiLabel);
-        datosClientePanel.add(nitCiTextField);
-        datosClientePanel.add(nombreLabel);
-        datosClientePanel.add(nombreTextField);
+        // Panel de encabezado
+        JPanel headerPanel = new JPanel();
+        headerPanel.setLayout(new FlowLayout(FlowLayout.CENTER)); // Alineación centrada
 
-        mainPanel.add(datosClientePanel, BorderLayout.NORTH);
+        JLabel headerLabel = new JLabel("Sistema Facturación NEO");
+        headerLabel.setFont(new Font(headerLabel.getFont().getName(), Font.BOLD, 24)); // Fuente grande y negrita
+
+        headerPanel.add(headerLabel);
+
+        mainPanel.add(headerPanel, BorderLayout.NORTH);
 
         // Tabla de productos
         tableModel = new DefaultTableModel() {
@@ -111,7 +115,7 @@ public class FacturacionInterfaz extends JFrame {
         finalizarButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Aquí puedes implementar la lógica para finalizar la compra y generar la factura
+                mostrarVentanaDatosCliente();
             }
         });
 
@@ -189,7 +193,98 @@ public class FacturacionInterfaz extends JFrame {
             total += precioUnitario * cantidad; // Multiplicar precio unitario por cantidad
         }
         totalTextArea.setText(String.format("Bs. %.2f", total));
-    }       
+    }
+    
+    private void mostrarVentanaDatosCliente() {
+        JFrame datosClienteFrame = new JFrame("Datos del Cliente");
+        datosClienteFrame.setSize(400, 200);
+        datosClienteFrame.setLocationRelativeTo(null);
+
+        JPanel datosClientePanel = new JPanel();
+        datosClientePanel.setLayout(new GridLayout(2, 2));
+
+        JLabel nitCiLabel = new JLabel("NIT/CI:");
+        JTextField nitCiTextField = new JTextField();
+        JLabel nombreLabel = new JLabel("Nombre:");
+        JTextField nombreTextField = new JTextField();
+
+        datosClientePanel.add(nitCiLabel);
+        datosClientePanel.add(nitCiTextField);
+        datosClientePanel.add(nombreLabel);
+        datosClientePanel.add(nombreTextField);
+
+        JButton confirmarButton = new JButton("Confirmar");
+        confirmarButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Obtener los datos del cliente
+                String nitCi = nitCiTextField.getText();
+                String nombre = nombreTextField.getText();
+
+                // Realizar el registro de la compra con los datos del cliente y generar la factura
+                registrarCompra(nitCi, nombre);
+
+                // Cerrar la ventana de datos del cliente
+                datosClienteFrame.dispose();
+            }
+        });
+
+        datosClienteFrame.add(datosClientePanel, BorderLayout.CENTER);
+        datosClienteFrame.add(confirmarButton, BorderLayout.SOUTH);
+
+        datosClienteFrame.setVisible(true);
+    }
+
+    // Método para generar el recibo
+    private void registrarCompra(String nitCi, String nombre) {
+        // Imprimir los datos del cliente y los productos comprados en el JTextArea del recibo
+        StringBuilder sb = new StringBuilder();
+        sb.append("Recibo de Compra\n");
+        sb.append("------------------------------\n");
+        sb.append("Datos del Cliente:\n");
+        sb.append("NIT/CI: ").append(nitCi).append("\n");
+        sb.append("Nombre: ").append(nombre).append("\n");
+        sb.append("------------------------------\n");
+        sb.append("Productos Comprados:\n");
+        for (int i = 0; i < tableModel.getRowCount(); i++) {
+            String producto = (String) tableModel.getValueAt(i, 0);
+            double precioUnitario = (double) tableModel.getValueAt(i, 1);
+            int cantidad = (int) tableModel.getValueAt(i, 2);
+            double precioTotal = precioUnitario * cantidad; // Calcular el precio total del producto
+            sb.append("Producto: ").append(producto).append(", Precio Unitario: ").append(precioUnitario).append(", Cantidad: ").append(cantidad).append(", Precio Total: ").append(precioTotal).append("\n");
+        }
+        reciboTextArea.setText(sb.toString());
+    }    
+
+    // Método para imprimir el recibo
+    private void imprimirRecibo() {
+        // Aquí puedes implementar la lógica para imprimir el recibo en una impresora
+        // Puedes usar la API de impresión de Java (java.awt.print) para hacerlo
+    }
+
+    // Método para guardar el recibo como PDF
+    private void guardarComoPDF() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Guardar como PDF");
+        fileChooser.setFileFilter(new FileNameExtensionFilter("Archivo PDF", "pdf"));
+
+        int userSelection = fileChooser.showSaveDialog(this);
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            try {
+                String filePath = fileChooser.getSelectedFile().getAbsolutePath();
+                if (!filePath.toLowerCase().endsWith(".pdf")) {
+                    filePath += ".pdf"; // Agregar la extensión .pdf si no está presente
+                }
+                FileWriter writer = new FileWriter(filePath);
+                writer.write(reciboTextArea.getText());
+                writer.close();
+                JOptionPane.showMessageDialog(this, "El recibo se ha guardado como PDF correctamente.", "Guardar PDF", JOptionPane.INFORMATION_MESSAGE);
+            } catch (IOException ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Error al guardar el recibo como PDF.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
