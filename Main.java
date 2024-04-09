@@ -1,5 +1,7 @@
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.sql.*;
 
 public class Main extends JFrame {
@@ -10,9 +12,9 @@ public class Main extends JFrame {
     private static final String DB_URL = "jdbc:mysql://localhost:3306/SIS_Facturacion";
     private static final String DB_USER = "root";
     private static final String DB_PASSWORD = "Guitarhero3-*$.";
-
+    
     public Main() {
-        setTitle("Sistema de Facturación NEO");
+        setTitle("Inicio de Sesión");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         // Crear los componentes de la interfaz de usuario
@@ -21,9 +23,20 @@ public class Main extends JFrame {
         
         JLabel passwordLabel = new JLabel("Contraseña:");
         passwordField = new JPasswordField(20);
+        passwordField.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                login();
+            }
+        });
         
         JButton loginButton = new JButton("Iniciar sesión");
-        loginButton.addActionListener(e -> login());
+        loginButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                login();
+            }
+        });
 
         // Crear el panel y establecer el diseño
         JPanel panel = new JPanel(new GridBagLayout());
@@ -72,7 +85,13 @@ public class Main extends JFrame {
                 ResultSet resultSet = statement.executeQuery();
 
                 if (resultSet.next()) {
-                    JOptionPane.showMessageDialog(this, "Bienvenido, " + username + "!");
+                    // Si las credenciales son correctas, cerramos la ventana de inicio de sesión
+                    dispose();
+                    // Y mostramos la ventana principal del sistema de facturación
+                    SwingUtilities.invokeLater(() -> {
+                        FacturacionInterfaz app = new FacturacionInterfaz();
+                        app.setVisible(true);
+                    });
                 } else {
                     JOptionPane.showMessageDialog(this, "Credenciales incorrectas", "Error", JOptionPane.ERROR_MESSAGE);
                 }
@@ -85,8 +104,8 @@ public class Main extends JFrame {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            Main app = new Main();
-            app.setVisible(true);
+            Main loginFrame = new Main();
+            loginFrame.setVisible(true);
         });
     }
 }

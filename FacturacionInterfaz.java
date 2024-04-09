@@ -98,8 +98,11 @@ public class FacturacionInterfaz extends JFrame {
         mainPanel.add(totalPanel, BorderLayout.SOUTH);
 
 
-        // Panel de botones
-        JPanel buttonPanel = new JPanel();
+        // Panel de botones con BorderLayout
+        JPanel buttonPanel = new JPanel(new BorderLayout());
+
+        // Panel para los botones de acción (Agregar Producto y Finalizar Compra)
+        JPanel actionButtonPanel = new JPanel();
         JButton agregarButton = new JButton("Agregar Producto");
         agregarButton.addActionListener(new ActionListener() {
             @Override
@@ -116,8 +119,21 @@ public class FacturacionInterfaz extends JFrame {
             }
         });
 
-        buttonPanel.add(agregarButton);
-        buttonPanel.add(finalizarButton);
+        actionButtonPanel.add(agregarButton);
+        actionButtonPanel.add(finalizarButton);
+
+        // Botón "Salir del Sistema" en la parte inferior
+        JButton salirButton = new JButton("Salir del Sistema");
+        salirButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Salir completamente del sistema
+                System.exit(0);
+            }
+        });
+
+        buttonPanel.add(actionButtonPanel, BorderLayout.CENTER);
+        buttonPanel.add(salirButton, BorderLayout.SOUTH);
 
         mainPanel.add(buttonPanel, BorderLayout.EAST);
 
@@ -237,20 +253,35 @@ public class FacturacionInterfaz extends JFrame {
     private void registrarCompra(String nitCi, String nombre) {
         // Imprimir los datos del cliente y los productos comprados en el JTextArea del recibo
         StringBuilder sb = new StringBuilder();
-        sb.append("\tEMPRESA S.A.\n");
-        sb.append("------------------------------\n");
+        sb.append("\t            EMPRESA S.A.\n");
+        sb.append("-----------------------------------------------\n");
         sb.append("Datos del Cliente:\n");
-        sb.append("NIT/CI: ").append(nitCi).append("\n");
-        sb.append("Nombre: ").append(nombre).append("\n");
-        sb.append("------------------------------\n");
+        sb.append(String.format("%-5s: %s\n", "NIT/CI", nitCi));
+        sb.append(String.format("%5s: %s\n", "Nombre", nombre));
+        sb.append("-----------------------------------------------\n");
         sb.append("Productos Comprados:\n");
+
+        // Encabezados de las columnas
+        sb.append(String.format("%-20s %-20s %-10s %-10s\n", "Producto", "Precio Unitario", "Cantidad", "Precio Total"));
+
+        double granTotal = 0; 
+
         for (int i = 0; i < tableModel.getRowCount(); i++) {
             String producto = (String) tableModel.getValueAt(i, 0);
             double precioUnitario = (double) tableModel.getValueAt(i, 1);
             int cantidad = (int) tableModel.getValueAt(i, 2);
             double precioTotal = precioUnitario * cantidad; // Calcular el precio total del producto
-            sb.append("Producto: ").append(producto).append(", Precio Unitario: ").append(precioUnitario).append(", Cantidad: ").append(cantidad).append(", Precio Total: ").append(precioTotal).append("\n");
+
+            // Sumar el precio total al gran total
+            granTotal += precioTotal;
+            
+            // Datos de cada producto, alineados en las columnas correspondientes
+            sb.append(String.format("%-20s Bs. %-19.2f %-10d Bs. %.2f\n", producto, precioUnitario, cantidad, precioTotal));
         }
+
+        // Mostrar el gran total
+        sb.append("-----------------------------------------------\n\n");
+        sb.append(String.format("%-5s Bs. %.2f\n", "Total a pagar:", granTotal));
 
         // Mostrar la vista previa del recibo
         VistaPreviaRecibo vistaPreviaRecibo = new VistaPreviaRecibo(sb.toString());
