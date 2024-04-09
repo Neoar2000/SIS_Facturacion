@@ -3,15 +3,12 @@ import javax.swing.event.CellEditorListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellEditor;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.event.ChangeEvent;
 import java.util.ArrayList;
 import java.util.List;
-import java.io.FileWriter;
-import java.io.IOException;
 
 public class FacturacionInterfaz extends JFrame {
 
@@ -235,11 +232,12 @@ public class FacturacionInterfaz extends JFrame {
         datosClienteFrame.setVisible(true);
     }
 
+
     // Método para generar el recibo
     private void registrarCompra(String nitCi, String nombre) {
         // Imprimir los datos del cliente y los productos comprados en el JTextArea del recibo
         StringBuilder sb = new StringBuilder();
-        sb.append("Recibo de Compra\n");
+        sb.append("\tEMPRESA S.A.\n");
         sb.append("------------------------------\n");
         sb.append("Datos del Cliente:\n");
         sb.append("NIT/CI: ").append(nitCi).append("\n");
@@ -253,37 +251,10 @@ public class FacturacionInterfaz extends JFrame {
             double precioTotal = precioUnitario * cantidad; // Calcular el precio total del producto
             sb.append("Producto: ").append(producto).append(", Precio Unitario: ").append(precioUnitario).append(", Cantidad: ").append(cantidad).append(", Precio Total: ").append(precioTotal).append("\n");
         }
-        reciboTextArea.setText(sb.toString());
-    }    
 
-    // Método para imprimir el recibo
-    private void imprimirRecibo() {
-        // Aquí puedes implementar la lógica para imprimir el recibo en una impresora
-        // Puedes usar la API de impresión de Java (java.awt.print) para hacerlo
-    }
-
-    // Método para guardar el recibo como PDF
-    private void guardarComoPDF() {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Guardar como PDF");
-        fileChooser.setFileFilter(new FileNameExtensionFilter("Archivo PDF", "pdf"));
-
-        int userSelection = fileChooser.showSaveDialog(this);
-        if (userSelection == JFileChooser.APPROVE_OPTION) {
-            try {
-                String filePath = fileChooser.getSelectedFile().getAbsolutePath();
-                if (!filePath.toLowerCase().endsWith(".pdf")) {
-                    filePath += ".pdf"; // Agregar la extensión .pdf si no está presente
-                }
-                FileWriter writer = new FileWriter(filePath);
-                writer.write(reciboTextArea.getText());
-                writer.close();
-                JOptionPane.showMessageDialog(this, "El recibo se ha guardado como PDF correctamente.", "Guardar PDF", JOptionPane.INFORMATION_MESSAGE);
-            } catch (IOException ex) {
-                ex.printStackTrace();
-                JOptionPane.showMessageDialog(this, "Error al guardar el recibo como PDF.", "Error", JOptionPane.ERROR_MESSAGE);
-            }
-        }
+        // Mostrar la vista previa del recibo
+        VistaPreviaRecibo vistaPreviaRecibo = new VistaPreviaRecibo(sb.toString());
+        vistaPreviaRecibo.setVisible(true);
     }
 
     public static void main(String[] args) {
