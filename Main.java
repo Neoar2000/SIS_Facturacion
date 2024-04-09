@@ -7,7 +7,7 @@ public class Main extends JFrame {
     private JPasswordField passwordField;
 
     // Datos de conexión a la base de datos MySQL
-    private static final String DB_URL = "jdbc:mysql://127.0.0.1:3306/SIS_Facturacion";
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/SIS_Facturacion";
     private static final String DB_USER = "root";
     private static final String DB_PASSWORD = "Guitarhero3-*$.";
 
