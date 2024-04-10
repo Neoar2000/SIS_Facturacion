@@ -143,7 +143,7 @@ public class FacturacionInterfaz extends JFrame {
 
     private void mostrarVentanaProductos() {
         // Crear una nueva ventana para mostrar los productos
-        JFrame productosFrame = new JFrame("Seleccione un Producto");
+        JFrame productosFrame = new JFrame("Seleccion de Productos");
         productosFrame.setSize(400, 300);
         productosFrame.setLocationRelativeTo(null);
     
@@ -165,7 +165,7 @@ public class FacturacionInterfaz extends JFrame {
                 if (selectedRow != -1) {
                     // Obtener el producto seleccionado
                     Producto selectedProduct = productos.get(selectedRow);
-    
+        
                     // Pedir al usuario que ingrese la cantidad
                     String cantidadString = JOptionPane.showInputDialog(productosFrame, "Ingrese la cantidad:", "Cantidad", JOptionPane.QUESTION_MESSAGE);
                     try {
@@ -174,7 +174,7 @@ public class FacturacionInterfaz extends JFrame {
                             // Agregar el producto seleccionado con la cantidad ingresada a la tabla principal
                             Object[] rowData = {selectedProduct.getNombre(), selectedProduct.getPrecio(), cantidad, selectedProduct.getPrecio() * cantidad};
                             tableModel.addRow(rowData);
-    
+        
                             // Actualizar el total
                             actualizarTotal();
                             productosFrame.dispose();
@@ -183,10 +183,13 @@ public class FacturacionInterfaz extends JFrame {
                         }
                     } catch (NumberFormatException ex) {
                         JOptionPane.showMessageDialog(productosFrame, "Ingrese un número entero válido.", "Error", JOptionPane.ERROR_MESSAGE);
+                    } finally {
+                        // Deseleccionar la fila para permitir la selección nuevamente
+                        productosTable.clearSelection();
                     }
                 }
             }
-        });
+        });        
     
         // Agregar la tabla a un JScrollPane
         JScrollPane scrollPane = new JScrollPane(productosTable);
@@ -209,9 +212,24 @@ public class FacturacionInterfaz extends JFrame {
     }
     
     private void mostrarVentanaDatosCliente() {
+        // Verificar si hay productos agregados
+        if (tableModel.getRowCount() == 0) {
+            // Mostrar mensaje de error
+            JOptionPane.showMessageDialog(this, "Debe agregar al menos un producto para finalizar la compra.", "Error", JOptionPane.ERROR_MESSAGE);
+            return; // Salir del método sin continuar
+        }
+
         JFrame datosClienteFrame = new JFrame("Datos del Cliente");
         datosClienteFrame.setSize(400, 200);
         datosClienteFrame.setLocationRelativeTo(null);
+
+        // Crear un JLabel para el título "Datos del Cliente"
+        JLabel titleLabel = new JLabel("Datos del Cliente");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 20)); // Cambiar la fuente a negrita y aumentar el tamaño
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER); // Centrar el texto
+
+        // Agregar el JLabel al panel de datos del cliente
+        datosClienteFrame.add(titleLabel, BorderLayout.NORTH);
 
         JPanel datosClientePanel = new JPanel();
         datosClientePanel.setLayout(new GridLayout(2, 2));
@@ -251,6 +269,13 @@ public class FacturacionInterfaz extends JFrame {
 
     // Método para generar el recibo
     private void registrarCompra(String nitCi, String nombre) {
+        // Verificar si el NIT/CI y el nombre están vacíos
+        if (nitCi.isEmpty()) {
+            nitCi = "0"; // Asignar "0" si el NIT/CI está vacío
+        }
+        if (nombre.isEmpty()) {
+            nombre = "S/N"; // Asignar "S/N" si el nombre está vacío
+        }
         // Imprimir los datos del cliente y los productos comprados en el JTextArea del recibo
         StringBuilder sb = new StringBuilder();
         sb.append("\t                  EMPRESA S.A.\n");

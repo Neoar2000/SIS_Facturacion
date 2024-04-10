@@ -7,7 +7,7 @@ public class VistaPreviaRecibo extends JFrame {
     private JTextArea reciboTextArea;
 
     public VistaPreviaRecibo(String recibo) {
-        setTitle("Vista Previa del Recibo");
+        setTitle("Factura de Venta");
         setSize(400, 300);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
