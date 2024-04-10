@@ -253,12 +253,12 @@ public class FacturacionInterfaz extends JFrame {
     private void registrarCompra(String nitCi, String nombre) {
         // Imprimir los datos del cliente y los productos comprados en el JTextArea del recibo
         StringBuilder sb = new StringBuilder();
-        sb.append("\t            EMPRESA S.A.\n");
-        sb.append("-----------------------------------------------\n");
+        sb.append("\t                  EMPRESA S.A.\n");
+        sb.append("----------------------------------------------------------------------------------------------\n");
         sb.append("Datos del Cliente:\n");
         sb.append(String.format("%-5s: %s\n", "NIT/CI", nitCi));
         sb.append(String.format("%5s: %s\n", "Nombre", nombre));
-        sb.append("-----------------------------------------------\n");
+        sb.append("----------------------------------------------------------------------------------------------\n");
         sb.append("Productos Comprados:\n");
 
         // Encabezados de las columnas
@@ -280,7 +280,7 @@ public class FacturacionInterfaz extends JFrame {
         }
 
         // Mostrar el gran total
-        sb.append("-----------------------------------------------\n\n");
+        sb.append("----------------------------------------------------------------------------------------------\n");
         sb.append(String.format("%-5s Bs. %.2f\n", "Total a pagar:", granTotal));
 
         // Mostrar la vista previa del recibo
