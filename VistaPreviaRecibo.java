@@ -1,10 +1,6 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.FileWriter;
-import java.io.IOException;
-import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.event.*;
 import java.awt.print.*;
 
 public class VistaPreviaRecibo extends JFrame {
@@ -27,21 +23,21 @@ public class VistaPreviaRecibo extends JFrame {
             }
         });
 
-        JButton guardarPDFButton = new JButton("Guardar como PDF");
-        guardarPDFButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                guardarComoPDF();
-            }
-        });
-
         JPanel buttonPanel = new JPanel();
         buttonPanel.add(imprimirButton);
-        buttonPanel.add(guardarPDFButton);
 
         getContentPane().setLayout(new BorderLayout());
         getContentPane().add(new JScrollPane(reciboTextArea), BorderLayout.CENTER);
         getContentPane().add(buttonPanel, BorderLayout.SOUTH);
+
+        // Agregar un WindowListener para detectar el cierre de la ventana
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+                // Volver a la ventana FacturacionInterfaz al cerrar la ventana de vista previa
+                volverAFacturacionInterfaz();
+            }
+        });
     }
 
     private void imprimirRecibo() {
@@ -80,29 +76,12 @@ public class VistaPreviaRecibo extends JFrame {
                 JOptionPane.showMessageDialog(this, "Error al imprimir el recibo.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
+        dispose();
     }
 
-    // Método para guardar el recibo como PDF
-    private void guardarComoPDF() {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Guardar como PDF");
-        fileChooser.setFileFilter(new FileNameExtensionFilter("Archivo PDF", "pdf"));
-
-        int userSelection = fileChooser.showSaveDialog(this);
-        if (userSelection == JFileChooser.APPROVE_OPTION) {
-            try {
-                String filePath = fileChooser.getSelectedFile().getAbsolutePath();
-                if (!filePath.toLowerCase().endsWith(".pdf")) {
-                    filePath += ".pdf"; // Agregar la extensión .pdf si no está presente
-                }
-                FileWriter writer = new FileWriter(filePath);
-                writer.write(reciboTextArea.getText());
-                writer.close();
-                JOptionPane.showMessageDialog(this, "El recibo se ha guardado como PDF correctamente.", "Guardar PDF", JOptionPane.INFORMATION_MESSAGE);
-            } catch (IOException ex) {
-                ex.printStackTrace();
-                JOptionPane.showMessageDialog(this, "Error al guardar el recibo como PDF.", "Error", JOptionPane.ERROR_MESSAGE);
-            }
-        }
-    }
+    private void volverAFacturacionInterfaz() {
+        FacturacionInterfaz nuevaFacturacionInterfaz = new FacturacionInterfaz();
+        nuevaFacturacionInterfaz.setVisible(true);
+    }    
+    
 }

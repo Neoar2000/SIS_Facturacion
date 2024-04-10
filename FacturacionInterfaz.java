@@ -286,6 +286,7 @@ public class FacturacionInterfaz extends JFrame {
         // Mostrar la vista previa del recibo
         VistaPreviaRecibo vistaPreviaRecibo = new VistaPreviaRecibo(sb.toString());
         vistaPreviaRecibo.setVisible(true);
+        dispose();
     }
 
     public static void main(String[] args) {
