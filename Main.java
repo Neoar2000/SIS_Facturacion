@@ -14,7 +14,7 @@ public class Main extends JFrame {
     private static final String DB_PASSWORD = "Guitarhero3-*$.";
     
     public Main() {
-        setTitle("Sistema Facturación NEO");
+        setTitle("Iniciar Sesion");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         // Crear los componentes de la interfaz de usuario
