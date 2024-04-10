@@ -9,6 +9,10 @@ import java.awt.event.ActionListener;
 import javax.swing.event.ChangeEvent;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
+import javax.swing.text.AbstractDocument;
 
 public class FacturacionInterfaz extends JFrame {
 
@@ -243,6 +247,14 @@ public class FacturacionInterfaz extends JFrame {
         datosClientePanel.add(nitCiTextField);
         datosClientePanel.add(nombreLabel);
         datosClientePanel.add(nombreTextField);
+
+        // Crear un filtro para convertir el texto a mayúsculas en el campo de nombre
+        ((AbstractDocument) nombreTextField.getDocument()).setDocumentFilter(new DocumentFilter() {
+            @Override
+            public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) throws BadLocationException {
+                super.replace(fb, offset, length, text.toUpperCase(), attrs); // Convertir el texto a mayúsculas antes de reemplazarlo
+            }
+        });
 
         JButton confirmarButton = new JButton("Confirmar");
         confirmarButton.addActionListener(new ActionListener() {
