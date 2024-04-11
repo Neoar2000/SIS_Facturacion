@@ -2,35 +2,52 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.*;
 import java.sql.*;
 
 public class Main extends JFrame {
     private JTextField usernameField;
     private JPasswordField passwordField;
+    private boolean loginSuccessful = false;
 
     // Datos de conexión a la base de datos MySQL
     private static final String DB_URL = "jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion";
     private static final String DB_USER = "Neoar2000";
     private static final String DB_PASSWORD = "Guitarhero3-*$.";
-    
+
     public Main() {
-        setTitle("Iniciar Sesion");
+        initializeGUI();
+    }
+
+    // Constructor que acepta un objeto FacturacionInterfaz
+    public Main(FacturacionInterfaz app) {
+        initializeGUI();
+        app.setVisible(true);
+    }
+
+    private void initializeGUI() {
+        setTitle("Iniciar Sesión");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        
+
         // Crear los componentes de la interfaz de usuario
         JLabel usernameLabel = new JLabel("Usuario:");
+        usernameLabel.setFont(new Font(usernameLabel.getFont().getName(), Font.PLAIN, 24)); // Aumentar el tamaño del texto
         usernameField = new JTextField(20);
-        
+        usernameField.setFont(new Font(usernameField.getFont().getName(), Font.PLAIN, 20)); // Aumentar el tamaño del texto
+
         JLabel passwordLabel = new JLabel("Contraseña:");
+        passwordLabel.setFont(new Font(passwordLabel.getFont().getName(), Font.PLAIN, 24)); // Aumentar el tamaño del texto
         passwordField = new JPasswordField(20);
+        passwordField.setFont(new Font(passwordField.getFont().getName(), Font.PLAIN, 20)); // Aumentar el tamaño del texto
         passwordField.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 login();
             }
         });
-        
-        JButton loginButton = new JButton("Iniciar sesión");
+
+        JButton loginButton = new JButton("Iniciar Sesión");
+        loginButton.setFont(new Font(loginButton.getFont().getName(), Font.PLAIN, 24)); // Aumentar el tamaño del texto
         loginButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -72,6 +89,14 @@ public class Main extends JFrame {
         setLocationRelativeTo(null);
     }
 
+    public boolean isLoginSuccessful() {
+        return loginSuccessful;
+    }
+
+    public void setLoginSuccessful(boolean loginSuccessful) {
+        this.loginSuccessful = loginSuccessful;
+    }
+
     private void login() {
         String username = usernameField.getText();
         String password = new String(passwordField.getPassword());
@@ -86,12 +111,18 @@ public class Main extends JFrame {
 
                 if (resultSet.next()) {
                     // Si las credenciales son correctas, cerramos la ventana de inicio de sesión
+                    setLoginSuccessful(true); // Establecer el estado del inicio de sesión como exitoso
                     dispose();
-                    // Y mostramos la ventana principal del sistema de facturación
-                    SwingUtilities.invokeLater(() -> {
-                        FacturacionInterfaz app = new FacturacionInterfaz();
-                        app.setVisible(true);
-                    });
+
+                    // Obtener la instancia de FacturacionInterfaz actual
+                    Window[] windows = Window.getWindows();
+                    for (Window window : windows) {
+                        if (window instanceof FacturacionInterfaz) {
+                            FacturacionInterfaz app = (FacturacionInterfaz) window;
+                            app.setVisible(true); // Hacer visible la instancia existente de FacturacionInterfaz
+                            break;
+                        }
+                    }
                 } else {
                     JOptionPane.showMessageDialog(this, "Credenciales incorrectas", "Error", JOptionPane.ERROR_MESSAGE);
                 }
@@ -106,6 +137,19 @@ public class Main extends JFrame {
         SwingUtilities.invokeLater(() -> {
             Main loginFrame = new Main();
             loginFrame.setVisible(true);
+
+            // Agregar un WindowListener a la ventana de inicio de sesión
+            loginFrame.addWindowListener(new WindowAdapter() {
+                @Override
+                public void windowClosed(WindowEvent e) {
+                    // Verificar si el inicio de sesión fue exitoso
+                    if (loginFrame.isLoginSuccessful()) {
+                        // Crear una instancia de FacturacionInterfaz solo si el inicio de sesión es exitoso
+                        FacturacionInterfaz facturaFrame = new FacturacionInterfaz();
+                        facturaFrame.setVisible(true); // Hacer visible la ventana principal
+                    }
+                }
+            });
         });
     }
 }
