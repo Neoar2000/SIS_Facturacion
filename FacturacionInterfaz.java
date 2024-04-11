@@ -14,6 +14,8 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
 import javax.swing.text.AbstractDocument;
 import java.sql.*;
+import java.awt.event.*;
+
 
 public class FacturacionInterfaz extends JFrame {
 
@@ -271,6 +273,20 @@ public class FacturacionInterfaz extends JFrame {
         JLabel nombreLabel = new JLabel("Nombre:");
         JTextField nombreTextField = new JTextField();
 
+        // Autocompletar el nombre si ya ha sido registrado previamente
+        nitCiTextField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+                // Realizar una consulta a la base de datos para buscar el cliente por NIT/CI
+                String nitCi = nitCiTextField.getText();
+                String nombreCliente = obtenerNombreCliente(nitCi);
+                if (nombreCliente != null) {
+                    // Se encontró un cliente con el NIT/CI proporcionado, llenar automáticamente el campo de nombre
+                    nombreTextField.setText(nombreCliente);
+                }
+            }
+        });
+
         datosClientePanel.add(nitCiLabel);
         datosClientePanel.add(nitCiTextField);
         datosClientePanel.add(nombreLabel);
@@ -292,6 +308,8 @@ public class FacturacionInterfaz extends JFrame {
                 String nitCi = nitCiTextField.getText();
                 String nombre = nombreTextField.getText();
 
+                registrarCliente(nitCi, nombre);
+
                 // Realizar el registro de la compra con los datos del cliente y generar la factura
                 registrarCompra(nitCi, nombre);
 
@@ -306,6 +324,77 @@ public class FacturacionInterfaz extends JFrame {
         datosClienteFrame.setVisible(true);
     }
 
+    // Método para obtener el nombre del cliente desde la base de datos
+    private String obtenerNombreCliente(String nitCi) {
+        String nombreCliente = null;
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+
+        try {
+            // Establecer la conexión con la base de datos
+            connection = DriverManager.getConnection("jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.");
+
+            // Preparar la consulta SQL
+            String sql = "SELECT nombre FROM clientes WHERE nit_ci = ?";
+            statement = connection.prepareStatement(sql);
+            statement.setString(1, nitCi);
+
+            // Ejecutar la consulta
+            resultSet = statement.executeQuery();
+
+            // Verificar si se encontró un resultado
+            if (resultSet.next()) {
+                // Obtener el nombre del cliente
+                nombreCliente = resultSet.getString("nombre");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace(); // Manejar la excepción apropiadamente en tu aplicación
+        } finally {
+            // Cerrar los recursos
+            try {
+                if (resultSet != null) {
+                    resultSet.close();
+                }
+                if (statement != null) {
+                    statement.close();
+                }
+                if (connection != null) {
+                    connection.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace(); // Manejar la excepción apropiadamente en tu aplicación
+            }
+        }
+
+        return nombreCliente;
+    }
+
+    private void registrarCliente(String nitCi, String nombre) {
+        // Realizar la inserción de los datos del cliente en la tabla "clientes" en la base de datos MySQL
+        String url = "jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion";
+        String usuario = "Neoar2000";
+        String contraseña = "Guitarhero3-*$.";
+        String sql = "INSERT INTO clientes (nit_ci, nombre) VALUES (?, ?)";
+    
+        try (Connection conn = DriverManager.getConnection(url, usuario, contraseña);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+    
+            pstmt.setString(1, nitCi);
+            pstmt.setString(2, nombre);
+    
+            int filasInsertadas = pstmt.executeUpdate();
+            if (filasInsertadas > 0) {
+                System.out.println("Cliente registrado exitosamente en la base de datos.");
+            } else {
+                System.out.println("Error al registrar el cliente en la base de datos.");
+            }
+    
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error al registrar el cliente en la base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
 
     // Método para generar el recibo
     private void registrarCompra(String nitCi, String nombre) {
