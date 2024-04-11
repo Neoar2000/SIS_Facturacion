@@ -13,6 +13,7 @@ import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
 import javax.swing.text.AbstractDocument;
+import java.sql.*;
 
 public class FacturacionInterfaz extends JFrame {
 
@@ -29,10 +30,12 @@ public class FacturacionInterfaz extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
+        cargarProductosDesdeBaseDeDatos();
+
         // Crear productos de ejemplo
-        productos.add(new Producto("Combo Simple", 18.0));
+        /*productos.add(new Producto("Combo Simple", 18.0));
         productos.add(new Producto("Combo Doble", 28.0));
-        productos.add(new Producto("Combo Triple", 36.0));
+        productos.add(new Producto("Combo Triple", 36.0));*/
 
         // Panel principal
         JPanel mainPanel = new JPanel();
@@ -143,6 +146,31 @@ public class FacturacionInterfaz extends JFrame {
 
         add(mainPanel);
         setVisible(true);
+    }
+
+    private void cargarProductosDesdeBaseDeDatos() {
+        // Inicializar la lista de productos
+        productos = new ArrayList<>();
+    
+        // Conectar a la base de datos
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.")) {
+            // Crear una consulta SQL para seleccionar todos los productos
+            String sql = "SELECT nombre, precio FROM productos";
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                // Ejecutar la consulta
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    // Iterar sobre los resultados y agregar los productos a la lista
+                    while (resultSet.next()) {
+                        String nombre = resultSet.getString("nombre");
+                        double precio = resultSet.getDouble("precio");
+                        productos.add(new Producto(nombre, precio));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error al cargar los productos desde la base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void mostrarVentanaProductos() {
