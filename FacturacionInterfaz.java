@@ -29,7 +29,7 @@ public class FacturacionInterfaz extends JFrame {
     private List<Producto> productos = new ArrayList<>();
 
     public FacturacionInterfaz() {
-        setTitle("Sistema Facturación NEO");
+        setTitle("Facturacion NEO");
         setExtendedState(JFrame.MAXIMIZED_BOTH); // Establecer la ventana a pantalla completa
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -52,7 +52,7 @@ public class FacturacionInterfaz extends JFrame {
         JPanel headerPanel = new JPanel();
         headerPanel.setLayout(new FlowLayout(FlowLayout.CENTER)); // Alineación centrada
 
-        JLabel headerLabel = new JLabel("Sistema Facturación NEO");
+        JLabel headerLabel = new JLabel("Facturacion NEO");
         headerLabel.setFont(new Font(headerLabel.getFont().getName(), Font.BOLD, 36)); // Fuente grande y negrita
         headerLabel.setForeground(Color.BLUE); // Cambiar color de texto a azul
 
@@ -163,7 +163,7 @@ public class FacturacionInterfaz extends JFrame {
 
         JButton eliminarButton = new JButton("Eliminar Producto");
         eliminarButton.setFont(new Font(eliminarButton.getFont().getName(), Font.PLAIN, 20)); // Aumentar el tamaño del texto del botón
-        eliminarButton.addActionListener(e -> solicitarInicioSesionParaEliminar());
+        eliminarButton.addActionListener(e -> eliminarProductoSeleccionado());
 
         bottomButtonPanel.add(eliminarButton);
         bottomButtonPanel.add(finalizarButton);
@@ -188,31 +188,43 @@ public class FacturacionInterfaz extends JFrame {
         int selectedRow = productosTable.getSelectedRow();
         if (selectedRow != -1) {
             int cantidad = (int) tableModel.getValueAt(selectedRow, 2); // Obtener la cantidad actual del producto
-            String cantidadStr = JOptionPane.showInputDialog(this, "Ingrese la nueva cantidad:", cantidad);
-            try {
-                int nuevaCantidad = Integer.parseInt(cantidadStr);
-                if (nuevaCantidad > 0) {
-                    // Actualizar la cantidad en el modelo de la tabla
-                    tableModel.setValueAt(nuevaCantidad, selectedRow, 2);
+            JTextField cantidadField = new JTextField(String.valueOf(cantidad));
+            cantidadField.setFont(new Font("Arial", Font.PLAIN, 20)); // Aumentar el tamaño de la fuente
+            
+            // Crear un panel personalizado para el mensaje con el tamaño de fuente deseado
+            JPanel panel = new JPanel(new GridLayout(0, 1));
+            JLabel label = new JLabel("Ingrese la nueva cantidad:");
+            label.setFont(new Font("Arial", Font.BOLD, 20)); // Aumentar el tamaño de la fuente
+            panel.add(label);
+            panel.add(cantidadField);
     
-                    // Actualizar el precio total después de cambiar la cantidad
-                    double precioUnitario = (double) tableModel.getValueAt(selectedRow, 1);
-                    double nuevoPrecioTotal = nuevaCantidad * precioUnitario;
-                    // Actualizar el precio total en la columna correspondiente del modelo de la tabla
-                    tableModel.setValueAt(nuevoPrecioTotal, selectedRow, 3);
-                    actualizarTotal();
-                } else {
-                    JOptionPane.showMessageDialog(this, "La cantidad debe ser un número positivo.", "Error", JOptionPane.ERROR_MESSAGE);
+            int option = JOptionPane.showConfirmDialog(this, panel, "Modificar Cantidad", JOptionPane.OK_CANCEL_OPTION);
+            if (option == JOptionPane.OK_OPTION) {
+                try {
+                    int nuevaCantidad = Integer.parseInt(cantidadField.getText());
+                    if (nuevaCantidad > 0) {
+                        // Actualizar la cantidad en el modelo de la tabla
+                        tableModel.setValueAt(nuevaCantidad, selectedRow, 2);
+    
+                        // Actualizar el precio total después de cambiar la cantidad
+                        double precioUnitario = (double) tableModel.getValueAt(selectedRow, 1);
+                        double nuevoPrecioTotal = nuevaCantidad * precioUnitario;
+                        // Actualizar el precio total en la columna correspondiente del modelo de la tabla
+                        tableModel.setValueAt(nuevoPrecioTotal, selectedRow, 3);
+                        actualizarTotal();
+                    } else {
+                        JOptionPane.showMessageDialog(this, "La cantidad debe ser un número positivo.", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(this, "Ingrese un número válido para la cantidad.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Ingrese un número válido para la cantidad.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         } else {
             JOptionPane.showMessageDialog(this, "Por favor, seleccione un producto para modificar su cantidad.", "Error", JOptionPane.ERROR_MESSAGE);
         }
-    }        
+    }                
 
-    private void solicitarInicioSesionParaEliminar() {
+    /*private void solicitarInicioSesionParaEliminar() {
         int selectedRow = productosTable.getSelectedRow();
         if (selectedRow != -1) {
             Main loginFrame = new Main(this); // Pasar la instancia de FacturacionInterfaz al constructor de Main
@@ -228,7 +240,7 @@ public class FacturacionInterfaz extends JFrame {
         } else {
             JOptionPane.showMessageDialog(this, "Por favor, seleccione un producto para eliminar.", "Error", JOptionPane.ERROR_MESSAGE);
         }
-    }            
+    }*/            
 
     private void eliminarProductoSeleccionado() {
         int selectedRow = productosTable.getSelectedRow();
@@ -267,8 +279,8 @@ public class FacturacionInterfaz extends JFrame {
 
     private void mostrarVentanaProductos() {
         // Crear una nueva ventana para mostrar los productos
-        JFrame productosFrame = new JFrame("Seleccion de Productos");
-        productosFrame.setSize(400, 300);
+        JFrame productosFrame = new JFrame("Selección de Productos");
+        productosFrame.setSize(500, 400); // Aumentar el tamaño de la ventana
         productosFrame.setLocationRelativeTo(null);
     
         // Crear tabla para mostrar productos
@@ -282,18 +294,18 @@ public class FacturacionInterfaz extends JFrame {
         productosTableModel.addColumn("Precio");
         JTable productosTable = new JTable(productosTableModel);
         productosTable.setFont(new Font(productosTable.getFont().getName(), Font.PLAIN, 20)); // Aumentar el tamaño de la fuente
-
+    
         productosTable.setRowHeight(30);
-
+    
         // Renderizador personalizado para el encabezado de la tabla
         JTableHeader tableHeader = productosTable.getTableHeader();
         tableHeader.setFont(new Font(tableHeader.getFont().getName(), Font.BOLD, 20)); // Aumentar el tamaño de la fuente en el encabezado
-
+    
         // Agregar productos a la tabla
         for (Producto producto : productos) {
             productosTableModel.addRow(new Object[]{producto.getNombre(), producto.getPrecio()});
         }
-
+    
         // Agregar un listener para detectar la selección del usuario
         productosTable.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -301,13 +313,22 @@ public class FacturacionInterfaz extends JFrame {
                 if (selectedRow != -1) {
                     // Obtener el producto seleccionado
                     Producto selectedProduct = productos.get(selectedRow);
+    
+                    // Crear un panel personalizado para el mensaje con el tamaño de fuente deseado
+                    JPanel panel = new JPanel(new GridLayout(0, 1));
+                    JLabel label = new JLabel("Ingrese la cantidad:");
+                    label.setFont(new Font("Arial", Font.BOLD, 20)); // Aumentar el tamaño de la fuente
+                    panel.add(label);
+                    JTextField cantidadField = new JTextField();
+                    cantidadField.setFont(new Font("Arial", Font.PLAIN, 20)); // Aumentar el tamaño de la fuente
+                    panel.add(cantidadField);
 
-                    // Pedir al usuario que ingrese la cantidad
-                    String cantidadString = JOptionPane.showInputDialog(productosFrame, "Ingrese la cantidad:", "Cantidad", JOptionPane.QUESTION_MESSAGE);
-                    try {
-                        // Verificar si se ingresó una cantidad
-                        if (cantidadString != null) {
-                            int cantidad = Integer.parseInt(cantidadString);
+                    // Mostrar el cuadro de diálogo con el panel personalizado
+                    int option = JOptionPane.showConfirmDialog(productosFrame, panel, "Cantidad", JOptionPane.OK_CANCEL_OPTION);
+                    if (option == JOptionPane.OK_OPTION) {
+                        try {
+                            // Verificar si se ingresó una cantidad
+                            int cantidad = Integer.parseInt(cantidadField.getText());
                             if (cantidad > 0) {
                                 // Agregar el producto seleccionado con la cantidad ingresada a la tabla principal
                                 Object[] rowData = {selectedProduct.getNombre(), selectedProduct.getPrecio(), cantidad, selectedProduct.getPrecio() * cantidad};
@@ -319,26 +340,26 @@ public class FacturacionInterfaz extends JFrame {
                             } else {
                                 JOptionPane.showMessageDialog(productosFrame, "La cantidad debe ser un número entero positivo.", "Error", JOptionPane.ERROR_MESSAGE);
                             }
+                        } catch (NumberFormatException ex) {
+                            JOptionPane.showMessageDialog(productosFrame, "Ingrese un número entero válido.", "Error", JOptionPane.ERROR_MESSAGE);
+                        } finally {
+                            // Deseleccionar la fila para permitir la selección nuevamente
+                            productosTable.clearSelection();
                         }
-                    } catch (NumberFormatException ex) {
-                        JOptionPane.showMessageDialog(productosFrame, "Ingrese un número entero válido.", "Error", JOptionPane.ERROR_MESSAGE);
-                    } finally {
-                        // Deseleccionar la fila para permitir la selección nuevamente
-                        productosTable.clearSelection();
                     }
                 }
             }
-        });
-
+});
+    
         // Agregar la tabla a un JScrollPane
         JScrollPane scrollPane = new JScrollPane(productosTable);
-
+    
         // Agregar el JScrollPane al panel principal de la ventana
         productosFrame.add(scrollPane);
-
+    
         // Hacer visible la ventana
         productosFrame.setVisible(true);
-    }       
+    }           
 
     private void actualizarTotal() {
         double total = 0;

@@ -8,14 +8,16 @@ public class VistaPreviaRecibo extends JFrame {
 
     public VistaPreviaRecibo(String recibo) {
         setTitle("Factura de Venta");
-        setSize(400, 300);
+        setSize(600, 500); // Aumentar el tamaño de la ventana
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
 
         reciboTextArea = new JTextArea(recibo);
         reciboTextArea.setEditable(false);
+        reciboTextArea.setFont(new Font("Arial", Font.PLAIN, 16)); // Aumentar el tamaño de la fuente
 
         JButton imprimirButton = new JButton("Imprimir");
+        imprimirButton.setFont(new Font("Arial", Font.BOLD, 16)); // Aumentar el tamaño de la fuente del botón
         imprimirButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
