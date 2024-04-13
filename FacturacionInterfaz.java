@@ -17,6 +17,8 @@ import javax.swing.text.DocumentFilter;
 import javax.swing.text.AbstractDocument;
 import java.sql.*;
 import java.awt.event.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class FacturacionInterfaz extends JFrame {
 
@@ -537,6 +539,13 @@ public class FacturacionInterfaz extends JFrame {
 
     // Método para generar el recibo
     private void registrarCompra(String nitCi, String nombre) {
+        // Obtener la fecha y la hora actual
+        LocalDateTime fechaHoraActual = LocalDateTime.now();
+        
+        // Formatear la fecha y la hora en el formato deseado
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+        String fechaHoraFormateada = fechaHoraActual.format(formatter);
+
         // Verificar si el NIT/CI y el nombre están vacíos
         if (nitCi.isEmpty()) {
             nitCi = "0"; // Asignar "0" si el NIT/CI está vacío
@@ -548,7 +557,7 @@ public class FacturacionInterfaz extends JFrame {
         StringBuilder sb = new StringBuilder();
         sb.append("\t                  EMPRESA S.A.\n");
         sb.append("----------------------------------------------------------------------------------------------\n");
-        sb.append("Datos del Cliente:\n");
+        sb.append(String.format("%-5s: %s\n", "Fecha Emision", fechaHoraFormateada));
         sb.append(String.format("%-5s: %s\n", "NIT/CI", nitCi));
         sb.append(String.format("%5s: %s\n", "Nombre", nombre));
         sb.append("----------------------------------------------------------------------------------------------\n");
