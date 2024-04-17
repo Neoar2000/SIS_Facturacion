@@ -261,7 +261,7 @@ public class FacturacionInterfazAlt extends JFrame {
         }
     }
 
-    private void cargarProductosDesdeBaseDeDatos() {
+    /*private void cargarProductosDesdeBaseDeDatos() {
         // Inicializar la lista de productos
         productos = new ArrayList<>();
     
@@ -284,7 +284,7 @@ public class FacturacionInterfazAlt extends JFrame {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Error al cargar los productos desde la base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
         }
-    }
+    }*/
 
     private void mostrarVentanaProductos() {
         // Crear una nueva ventana para mostrar los productos
