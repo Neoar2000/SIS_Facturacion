@@ -1,0 +1,17 @@
+/*private void solicitarInicioSesionParaEliminar() {
+        int selectedRow = productosTable.getSelectedRow();
+        if (selectedRow != -1) {
+            Main loginFrame = new Main(this); // Pasar la instancia de FacturacionInterfaz al constructor de Main
+            loginFrame.addWindowListener(new WindowAdapter() {
+                @Override
+                public void windowClosed(WindowEvent e) {
+                    if (loginFrame.isLoginSuccessful()) {
+                        eliminarProductoSeleccionado(); // Eliminar producto si el inicio de sesión fue exitoso
+                    }
+                }
+            });
+            loginFrame.setVisible(true);
+        } else {
+            JOptionPane.showMessageDialog(this, "Por favor, seleccione un producto para eliminar.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }*/  
