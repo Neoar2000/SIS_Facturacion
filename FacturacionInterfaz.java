@@ -19,15 +19,38 @@ import java.sql.*;
 import java.awt.event.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
 public class FacturacionInterfaz extends JFrame {
+    // Definición de la clase Cliente
+    static class Cliente {
+        private int id;
+        private String nombre;
+
+        public Cliente(int id, String nombre) {
+            this.id = id;
+            this.nombre = nombre;
+        }
+
+        public int getId() {
+            return id;
+        }
+
+        public String getNombre() {
+            return nombre;
+        }
+    }
 
     private DefaultTableModel tableModel;
     private JLabel totalTextArea;
     private JTextArea reciboTextArea;
     private JTable productosTable;
+    private Map<String, Integer> mapaClientes = new HashMap<>();
 
     // Lista de productos de ejemplo
     private List<Producto> productos = new ArrayList<>();
+    // Lista de clientes
+    private List<Cliente> listaClientes;
 
     public FacturacionInterfaz() {
         setTitle("Facturacion NEO");
@@ -468,8 +491,15 @@ public class FacturacionInterfaz extends JFrame {
         datosClienteFrame.setVisible(true);
     }       
 
-    // Método para obtener el nombre del cliente desde la base de datos
+    // Método para obtener el nombre del cliente desde el mapa de clientes
     private String obtenerNombreCliente(String nitCi) {
+        if (mapaClientes.containsKey(nitCi)) {
+            // Si el nombre del cliente ya está en el mapa, devuelve el ID del cliente y obtén su nombre desde el mapa de ID a nombre
+            int idCliente = mapaClientes.get(nitCi);
+            return obtenerNombreClienteDesdeMapa(idCliente);
+        }
+
+        // Si no está en el mapa, realizar la consulta en la base de datos
         String nombreCliente = null;
         Connection connection = null;
         PreparedStatement statement = null;
@@ -480,7 +510,7 @@ public class FacturacionInterfaz extends JFrame {
             connection = DriverManager.getConnection("jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.");
 
             // Preparar la consulta SQL
-            String sql = "SELECT nombre FROM clientes WHERE nit_ci = ?";
+            String sql = "SELECT id, nombre FROM clientes WHERE nit_ci = ?";
             statement = connection.prepareStatement(sql);
             statement.setString(1, nitCi);
 
@@ -489,8 +519,12 @@ public class FacturacionInterfaz extends JFrame {
 
             // Verificar si se encontró un resultado
             if (resultSet.next()) {
+                // Obtener el ID del cliente
+                int idCliente = resultSet.getInt("id");
                 // Obtener el nombre del cliente
                 nombreCliente = resultSet.getString("nombre");
+                // Guardar la asociación entre el NIT/CI y el ID del cliente en el mapa
+                mapaClientes.put(nitCi, idCliente);
             }
         } catch (SQLException e) {
             e.printStackTrace(); // Manejar la excepción apropiadamente en tu aplicación
@@ -513,8 +547,24 @@ public class FacturacionInterfaz extends JFrame {
 
         return nombreCliente;
     }
+    
+    private String obtenerNombreClienteDesdeMapa(int idCliente) {
+        // Itera sobre la lista de clientes y busca el cliente con el ID correspondiente
+        for (Cliente cliente : listaClientes) {
+            if (cliente.getId() == idCliente) {
+                return cliente.getNombre();
+            }
+        }
+        // Devuelve null si no se encuentra el cliente con el ID dado
+        return null;
+    }        
 
     private int registrarCliente(String nitCi, String nombre) {
+        if (mapaClientes.containsKey(nitCi)) {
+            System.out.println("El cliente ya está registrado en la base de datos.");
+            return mapaClientes.get(nitCi); // Devolver el ID del cliente existente
+        }
+    
         // Realizar la inserción de los datos del cliente en la tabla "clientes" en la base de datos MySQL
         String url = "jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion";
         String usuario = "Neoar2000";
@@ -546,8 +596,10 @@ public class FacturacionInterfaz extends JFrame {
             JOptionPane.showMessageDialog(this, "Error al registrar el cliente en la base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     
-        return idCliente; // Devolver el ID del cliente registrado (o -1 si no se pudo registrar)
-    }    
+        mapaClientes.put(nitCi, idCliente); // Guardar la relación en el mapa
+    
+        return idCliente;
+    }        
 
     // Método para registrar una compra en la base de datos
     private void registrarCompra(String nitCi, String nombre) throws SQLException {
