@@ -19,7 +19,6 @@ import java.sql.*;
 import java.awt.event.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-
 public class FacturacionInterfaz extends JFrame {
 
     private DefaultTableModel tableModel;
@@ -216,33 +215,19 @@ public class FacturacionInterfaz extends JFrame {
                         actualizarTotal();
                     } else {
                         JOptionPane.showMessageDialog(this, "La cantidad debe ser un número positivo.", "Error", JOptionPane.ERROR_MESSAGE);
+                        productosTable.clearSelection();
                     }
                 } catch (NumberFormatException ex) {
                     JOptionPane.showMessageDialog(this, "Ingrese un número válido para la cantidad.", "Error", JOptionPane.ERROR_MESSAGE);
+                    productosTable.clearSelection();
                 }
+            } else {
+                productosTable.clearSelection();
             }
         } else {
             JOptionPane.showMessageDialog(this, "Por favor, seleccione un producto para modificar su cantidad.", "Error", JOptionPane.ERROR_MESSAGE);
         }
-    }                
-
-    /*private void solicitarInicioSesionParaEliminar() {
-        int selectedRow = productosTable.getSelectedRow();
-        if (selectedRow != -1) {
-            Main loginFrame = new Main(this); // Pasar la instancia de FacturacionInterfaz al constructor de Main
-            loginFrame.addWindowListener(new WindowAdapter() {
-                @Override
-                public void windowClosed(WindowEvent e) {
-                    if (loginFrame.isLoginSuccessful()) {
-                        eliminarProductoSeleccionado(); // Eliminar producto si el inicio de sesión fue exitoso
-                    }
-                }
-            });
-            loginFrame.setVisible(true);
-        } else {
-            JOptionPane.showMessageDialog(this, "Por favor, seleccione un producto para eliminar.", "Error", JOptionPane.ERROR_MESSAGE);
-        }
-    }*/            
+    }                          
 
     private void eliminarProductoSeleccionado() {
         int selectedRow = productosTable.getSelectedRow();
@@ -260,24 +245,35 @@ public class FacturacionInterfaz extends JFrame {
     
         // Conectar a la base de datos
         try (Connection connection = DriverManager.getConnection("jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.")) {
-            // Crear una consulta SQL para seleccionar todos los productos
-            String sql = "SELECT nombre, precio FROM productos";
-            try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                // Ejecutar la consulta
-                try (ResultSet resultSet = statement.executeQuery()) {
-                    // Iterar sobre los resultados y agregar los productos a la lista
-                    while (resultSet.next()) {
-                        String nombre = resultSet.getString("nombre");
-                        double precio = resultSet.getDouble("precio");
-                        productos.add(new Producto(nombre, precio));
+            try (SistemaDAO sistemaDAO = new SistemaDAO(connection)) {
+                // Crear una consulta SQL para seleccionar todos los productos
+                String sql = "SELECT nombre, precio FROM productos";
+                try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                    // Ejecutar la consulta
+                    try (ResultSet resultSet = statement.executeQuery()) {
+                        // Iterar sobre los resultados y agregar los productos a la lista
+                        while (resultSet.next()) {
+                            String nombre = resultSet.getString("nombre");
+                            double precio = resultSet.getDouble("precio");
+   
+                            // Obtener el ID del producto desde la base de datos usando el sistemaDAO
+                            int idProducto = sistemaDAO.obtenerIdProducto(nombre);
+   
+                            productos.add(new Producto(idProducto, nombre, precio));
+                        }
                     }
                 }
+            } catch (SQLException e) {
+                throw e;
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
             }
         } catch (SQLException e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Error al cargar los productos desde la base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
         }
-    }
+    }    
 
     private void mostrarVentanaProductos() {
         // Crear una nueva ventana para mostrar los productos
@@ -345,9 +341,11 @@ public class FacturacionInterfaz extends JFrame {
                         } catch (NumberFormatException ex) {
                             JOptionPane.showMessageDialog(productosFrame, "Ingrese un número entero válido.", "Error", JOptionPane.ERROR_MESSAGE);
                         } finally {
-                            // Deseleccionar la fila para permitir la selección nuevamente
                             productosTable.clearSelection();
                         }
+                    }
+                    else if (option == JOptionPane.CANCEL_OPTION || option == JOptionPane.CLOSED_OPTION) {
+                        productosTable.clearSelection(); // Deseleccionar la fila seleccionada
                     }
                 }
             }
@@ -452,7 +450,12 @@ public class FacturacionInterfaz extends JFrame {
                 registrarCliente(nitCi, nombre);
     
                 // Realizar el registro de la compra con los datos del cliente y generar la factura
-                registrarCompra(nitCi, nombre);
+                try {
+                    registrarCompra(nitCi, nombre);
+                } catch (SQLException e1) {
+                    // TODO Auto-generated catch block
+                    e1.printStackTrace();
+                }
     
                 // Cerrar la ventana de datos del cliente
                 datosClienteFrame.dispose();
@@ -511,22 +514,29 @@ public class FacturacionInterfaz extends JFrame {
         return nombreCliente;
     }
 
-    private void registrarCliente(String nitCi, String nombre) {
+    private int registrarCliente(String nitCi, String nombre) {
         // Realizar la inserción de los datos del cliente en la tabla "clientes" en la base de datos MySQL
         String url = "jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion";
         String usuario = "Neoar2000";
         String contraseña = "Guitarhero3-*$.";
         String sql = "INSERT INTO clientes (nit_ci, nombre) VALUES (?, ?)";
     
+        int idCliente = -1; // Inicializar el id del cliente como -1, indicando que no se pudo registrar el cliente
+    
         try (Connection conn = DriverManager.getConnection(url, usuario, contraseña);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
     
             pstmt.setString(1, nitCi);
             pstmt.setString(2, nombre);
     
             int filasInsertadas = pstmt.executeUpdate();
             if (filasInsertadas > 0) {
-                System.out.println("Cliente registrado exitosamente en la base de datos.");
+                // Obtener el ID generado automáticamente para el cliente insertado
+                ResultSet generatedKeys = pstmt.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    idCliente = generatedKeys.getInt(1); // Obtener el valor del ID generado
+                    System.out.println("Cliente registrado exitosamente en la base de datos. ID: " + idCliente);
+                }
             } else {
                 System.out.println("Error al registrar el cliente en la base de datos.");
             }
@@ -535,61 +545,161 @@ public class FacturacionInterfaz extends JFrame {
             ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "Error al registrar el cliente en la base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
         }
-    }
+    
+        return idCliente; // Devolver el ID del cliente registrado (o -1 si no se pudo registrar)
+    }    
 
-    // Método para generar el recibo
-    private void registrarCompra(String nitCi, String nombre) {
-        // Obtener la fecha y la hora actual
-        LocalDateTime fechaHoraActual = LocalDateTime.now();
+    // Método para registrar una compra en la base de datos
+    private void registrarCompra(String nitCi, String nombre) throws SQLException {
+        // Registrar el cliente y obtener su ID
+        int idCliente = registrarCliente(nitCi, nombre);
+        if (idCliente == -1) {
+            System.out.println("No se pudo registrar la compra porque no se pudo registrar el cliente.");
+            return;
+        }
         
-        // Formatear la fecha y la hora en el formato deseado
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-        String fechaHoraFormateada = fechaHoraActual.format(formatter);
-
-        // Verificar si el NIT/CI y el nombre están vacíos
-        if (nitCi.isEmpty()) {
-            nitCi = "0"; // Asignar "0" si el NIT/CI está vacío
+        // Continuar con el registro de la compra utilizando el ID del cliente
+        try {
+            // Obtener la fecha y la hora actual
+            LocalDateTime fechaHoraActual = LocalDateTime.now();
+    
+            // Formatear la fecha y la hora en el formato deseado
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+            String fechaHoraFormateada = fechaHoraActual.format(formatter);
+    
+            // Verificar si el NIT/CI y el nombre están vacíos
+            if (nitCi.isEmpty()) {
+                nitCi = "0"; // Asignar "0" si el NIT/CI está vacío
+            }
+            if (nombre.isEmpty()) {
+                nombre = "S/N"; // Asignar "S/N" si el nombre está vacío
+            }
+    
+            // Imprimir los datos del cliente y los productos comprados en el JTextArea del recibo
+            StringBuilder sb = new StringBuilder();
+            sb.append("\t                  EMPRESA S.A.\n");
+            sb.append("----------------------------------------------------------------------------------------------\n");
+            sb.append(String.format("%-5s: %s\n", "Fecha Emision", fechaHoraFormateada));
+            sb.append(String.format("%-5s: %s\n", "NIT/CI", nitCi));
+            sb.append(String.format("%5s: %s\n", "Nombre", nombre));
+            sb.append("----------------------------------------------------------------------------------------------\n");
+            sb.append("Productos Comprados:\n");
+    
+            // Encabezados de las columnas
+            sb.append(String.format("%-20s %-20s %-10s %-10s\n", "Producto", "Precio Unitario", "Cantidad", "Precio Total"));
+    
+            double granTotal = 0;
+            List<Producto> productosVendidos = new ArrayList<>();
+    
+            // Declaración de la instancia de SistemaDAO fuera del bloque try-catch
+            SistemaDAO sistemaDAO = null;
+            Connection connection = DriverManager.getConnection("jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.");
+            try {
+                sistemaDAO = new SistemaDAO(connection); // Instanciamos el sistemaDAO
+    
+                // Resto del código dentro del bloque try-catch
+                for (int i = 0; i < tableModel.getRowCount(); i++) {
+                    String nombreProducto = (String) tableModel.getValueAt(i, 0);
+                    double precioUnitario = (double) tableModel.getValueAt(i, 1);
+                    int cantidad = (int) tableModel.getValueAt(i, 2);
+                    double precioTotal = precioUnitario * cantidad; // Calcular el precio total del producto
+    
+                    // Obtener el ID del producto desde la base de datos usando el sistemaDAO
+                    int idProducto = sistemaDAO.obtenerIdProducto(nombreProducto);
+    
+                    // Crear instancia de Producto con nombre, precio y ID
+                    Producto producto = new Producto(idProducto, nombreProducto, precioUnitario);
+                    productosVendidos.add(producto); // Agregar producto a la lista de productos vendidos
+    
+                    // Sumar el precio total al gran total
+                    granTotal += precioTotal;
+    
+                    // Datos de cada producto, alineados en las columnas correspondientes
+                    sb.append(String.format("%-20s Bs. %-19.2f %-10d Bs. %.2f\n", nombreProducto, precioUnitario, cantidad, precioTotal));
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Error al cargar los productos desde la base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
+                throw e; // Lanzar la excepción hacia arriba para que sea manejada por el llamador
+            } finally {
+                if (sistemaDAO != null) {
+                    sistemaDAO.close(); // Cerrar la instancia de SistemaDAO
+                }
+                if (connection != null) {
+                    connection.close(); // Cerrar la conexión a la base de datos
+                }
+            }
+    
+            // Crear una instancia de Venta con los datos de la compra
+            Venta venta = new Venta(nitCi, nombre, fechaHoraActual, productosVendidos, granTotal);
+    
+            // Mostrar el gran total
+            sb.append("----------------------------------------------------------------------------------------------\n");
+            sb.append(String.format("%-5s Bs. %.2f\n", "Total a pagar:", granTotal));
+    
+            // Mostrar la vista previa del recibo
+            VistaPreviaRecibo vistaPreviaRecibo = new VistaPreviaRecibo(sb.toString());
+            vistaPreviaRecibo.setVisible(true);
+            dispose();
+    
+            // Llamar a un método en tu base de datos para registrar la venta
+            registrarVentaEnBaseDeDatos(venta, idCliente, granTotal);
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error al registrar la venta en la base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
+            throw ex; // Lanzar la excepción hacia arriba para que sea manejada por el llamador
         }
-        if (nombre.isEmpty()) {
-            nombre = "S/N"; // Asignar "S/N" si el nombre está vacío
-        }
-        // Imprimir los datos del cliente y los productos comprados en el JTextArea del recibo
-        StringBuilder sb = new StringBuilder();
-        sb.append("\t                  EMPRESA S.A.\n");
-        sb.append("----------------------------------------------------------------------------------------------\n");
-        sb.append(String.format("%-5s: %s\n", "Fecha Emision", fechaHoraFormateada));
-        sb.append(String.format("%-5s: %s\n", "NIT/CI", nitCi));
-        sb.append(String.format("%5s: %s\n", "Nombre", nombre));
-        sb.append("----------------------------------------------------------------------------------------------\n");
-        sb.append("Productos Comprados:\n");
+    }        
 
-        // Encabezados de las columnas
-        sb.append(String.format("%-20s %-20s %-10s %-10s\n", "Producto", "Precio Unitario", "Cantidad", "Precio Total"));
-
-        double granTotal = 0; 
-
-        for (int i = 0; i < tableModel.getRowCount(); i++) {
-            String producto = (String) tableModel.getValueAt(i, 0);
-            double precioUnitario = (double) tableModel.getValueAt(i, 1);
-            int cantidad = (int) tableModel.getValueAt(i, 2);
-            double precioTotal = precioUnitario * cantidad; // Calcular el precio total del producto
-
-            // Sumar el precio total al gran total
-            granTotal += precioTotal;
+    private void registrarVentaEnBaseDeDatos(Venta venta, int idCliente, double granTotal) {
+        // Información de conexión a la base de datos
+        String url = "jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion";
+        String usuario = "Neoar2000";
+        String contraseña = "Guitarhero3-*$.";
+        
+        Connection connection = null; // Declarar la variable connection fuera del bloque try
+    
+        try {
+            // Establecer la conexión con la base de datos
+            connection = DriverManager.getConnection(url, usuario, contraseña);
             
-            // Datos de cada producto, alineados en las columnas correspondientes
-            sb.append(String.format("%-20s Bs. %-19.2f %-10d Bs. %.2f\n", producto, precioUnitario, cantidad, precioTotal));
+            // Consulta SQL para insertar los datos de la venta
+            String sql = "INSERT INTO ventas (id_cliente, total, fecha) VALUES (?, ?, ?)";
+    
+            // Preparar la declaración SQL para la inserción de datos
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                // Establecer los valores de los parámetros en la declaración preparada
+                statement.setInt(1, idCliente); // Establecer el ID del cliente
+                statement.setDouble(2, granTotal); // Establecer el granTotal como el valor del total
+                statement.setTimestamp(3, Timestamp.valueOf(venta.getFechaHora()));
+                //statement.setString(4, venta.getMetodoPago()); // Suponiendo que tienes un método para obtener el método de pago de la venta
+    
+                // Ejecutar la consulta SQL para insertar los datos en la base de datos
+                int filasInsertadas = statement.executeUpdate();
+                if (filasInsertadas > 0) {
+                    System.out.println("La venta ha sido registrada correctamente en la base de datos.");
+                } else {
+                    System.out.println("Error: No se pudo registrar la venta en la base de datos.");
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                System.out.println("Error al intentar preparar la consulta SQL.");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.out.println("Error al intentar establecer la conexión con la base de datos.");
+        } finally {
+            // Cerrar la conexión después de completar todas las operaciones
+            if (connection != null) {
+                try {
+                    connection.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    System.out.println("Error al cerrar la conexión.");
+                }
+            }
         }
-
-        // Mostrar el gran total
-        sb.append("----------------------------------------------------------------------------------------------\n");
-        sb.append(String.format("%-5s Bs. %.2f\n", "Total a pagar:", granTotal));
-
-        // Mostrar la vista previa del recibo
-        VistaPreviaRecibo vistaPreviaRecibo = new VistaPreviaRecibo(sb.toString());
-        vistaPreviaRecibo.setVisible(true);
-        dispose();
-    }
+    }        
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
@@ -598,25 +708,6 @@ public class FacturacionInterfaz extends JFrame {
                 new FacturacionInterfaz();
             }
         });
-    }
-
-    // Clase Producto de ejemplo
-    private class Producto {
-        private String nombre;
-        private double precio;
-
-        public Producto(String nombre, double precio) {
-            this.nombre = nombre;
-            this.precio = precio;
-        }
-
-        public String getNombre() {
-            return nombre;
-        }
-
-        public double getPrecio() {
-            return precio;
-        }
     }
 
     // Renderizador para formato decimal
