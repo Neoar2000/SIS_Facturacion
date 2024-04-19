@@ -46,6 +46,12 @@ public class FacturacionInterfaz extends JFrame {
     private JTextArea reciboTextArea;
     private JTable productosTable;
     private Map<String, Integer> mapaClientes = new HashMap<>();
+    private String metodoPagoSeleccionado;
+    private JTextField nitCiTextField;
+    private JTextField nombreTextField;
+    private String nitCi;
+    private String nombre;
+
 
     // Lista de productos de ejemplo
     private List<Producto> productos = new ArrayList<>();
@@ -59,6 +65,9 @@ public class FacturacionInterfaz extends JFrame {
         setLocationRelativeTo(null);
 
         cargarProductosDesdeBaseDeDatos();
+
+        nitCiTextField = new JTextField(15);
+        nombreTextField = new JTextField(15);
 
         // Panel principal
         JPanel mainPanel = new JPanel();
@@ -206,6 +215,14 @@ public class FacturacionInterfaz extends JFrame {
 
         add(mainPanel);
         setVisible(true);
+    }
+
+    public String getMetodoPagoSeleccionado() {
+        return metodoPagoSeleccionado; // Método getter para obtener el método de pago seleccionado
+    }
+
+    public void setMetodoPagoSeleccionado(String metodoPagoSeleccionado) {
+        this.metodoPagoSeleccionado = metodoPagoSeleccionado;
     }
 
     private void modificarCantidadProducto() {
@@ -462,24 +479,23 @@ public class FacturacionInterfaz extends JFrame {
         datosClientePanel.add(nombreTextField, gbc);
     
         JButton confirmarButton = new JButton("Confirmar");
-        confirmarButton.setFont(new Font("Arial", Font.BOLD, 20)); // Aumentar el tamaño de la fuente en el botón
+        confirmarButton.setFont(new Font("Arial", Font.BOLD, 20));
         confirmarButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Obtener los datos del cliente
-                String nitCi = nitCiTextField.getText();
-                String nombre = nombreTextField.getText();
-    
+                // Obtener los datos del cliente y asignarlos a las variables de instancia
+                nitCi = nitCiTextField.getText();
+                nombre = nombreTextField.getText();
+
                 registrarCliente(nitCi, nombre);
-    
+
                 // Realizar el registro de la compra con los datos del cliente y generar la factura
                 try {
-                    registrarCompra(nitCi, nombre);
+                    registrarCompra(nitCi, nombre, metodoPagoSeleccionado);
                 } catch (SQLException e1) {
-                    // TODO Auto-generated catch block
                     e1.printStackTrace();
                 }
-    
+
                 // Cerrar la ventana de datos del cliente
                 datosClienteFrame.dispose();
             }
@@ -489,7 +505,7 @@ public class FacturacionInterfaz extends JFrame {
         datosClienteFrame.add(confirmarButton, BorderLayout.SOUTH);
     
         datosClienteFrame.setVisible(true);
-    }       
+    }
 
     // Método para obtener el nombre del cliente desde el mapa de clientes
     private String obtenerNombreCliente(String nitCi) {
@@ -599,10 +615,10 @@ public class FacturacionInterfaz extends JFrame {
         mapaClientes.put(nitCi, idCliente); // Guardar la relación en el mapa
     
         return idCliente;
-    }        
+    }   
 
     // Método para registrar una compra en la base de datos
-    private void registrarCompra(String nitCi, String nombre) throws SQLException {
+    private void registrarCompra(String nitCi, String nombre, String metodoPago) throws SQLException {
         // Registrar el cliente y obtener su ID
         int idCliente = registrarCliente(nitCi, nombre);
         if (idCliente == -1) {
@@ -682,28 +698,122 @@ public class FacturacionInterfaz extends JFrame {
                 }
             }
     
-            // Crear una instancia de Venta con los datos de la compra
-            Venta venta = new Venta(nitCi, nombre, fechaHoraActual, productosVendidos, granTotal);
-    
             // Mostrar el gran total
             sb.append("----------------------------------------------------------------------------------------------\n");
-            sb.append(String.format("%-5s Bs. %.2f\n", "Total a pagar:", granTotal));
+            sb.append(String.format("%-5s Bs. %.2f\n", "Monto Total:", granTotal));
+
+            // Mostrar el método de pago seleccionado
+            sb.append(String.format("%-5s: %s\n", "Metodo de Pago", metodoPago));
+
+            abrirMetodoPago(nitCi, nombre, granTotal);
+
+            mostrarVistaPreviaRecibo(nitCi, nombre, metodoPago, granTotal, productosVendidos);
     
-            // Mostrar la vista previa del recibo
-            VistaPreviaRecibo vistaPreviaRecibo = new VistaPreviaRecibo(sb.toString());
-            vistaPreviaRecibo.setVisible(true);
-            dispose();
-    
-            // Llamar a un método en tu base de datos para registrar la venta
-            registrarVentaEnBaseDeDatos(venta, idCliente, granTotal);
+            //registrarVentaEnBaseDeDatos(venta, idCliente, granTotal, metodoPagoSeleccionado);
+
         } catch (SQLException ex) {
             ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "Error al registrar la venta en la base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
             throw ex; // Lanzar la excepción hacia arriba para que sea manejada por el llamador
         }
-    }        
+    }
 
-    private void registrarVentaEnBaseDeDatos(Venta venta, int idCliente, double granTotal) {
+    private void abrirMetodoPago(String nitCi, String nombre, double granTotal) {
+        // Obtener los datos necesarios para el recibo
+        List<Producto> productosVendidos = new ArrayList<>(); // Asegúrate de tener un método para obtener los productos vendidos
+    
+        // Mostrar la vista previa del recibo con los datos necesarios
+        mostrarVistaPreviaRecibo(nitCi, nombre, null, granTotal, productosVendidos);
+        
+        // Abrir la ventana de selección de método de pago
+        MetodoPago metodoPagoVentana = new MetodoPago(this); // Pasar la instancia actual de FacturacionInterfaz
+        metodoPagoVentana.setMetodoPagoListener(new MetodoPagoListener() {
+            @Override
+            public void metodoPagoConfirmado(String metodoPago) {
+                // Registrar el cliente y obtener su ID
+                int idCliente = registrarCliente(nitCi, nombre);
+                if (idCliente == -1) {
+                    System.out.println("No se pudo registrar la compra porque no se pudo registrar el cliente.");
+                    return;
+                }
+                // Obtener la fecha y la hora actual
+                LocalDateTime fechaHoraActual = LocalDateTime.now();
+                // Una vez que se confirma el método de pago, actualizar el método de pago en el recibo y mostrar la vista previa del recibo nuevamente
+                mostrarVistaPreviaRecibo(nitCi, nombre, metodoPago, granTotal, productosVendidos);
+                // Crear una instancia de Venta con los datos de la compra
+                Venta venta = new Venta(nitCi, nombre, fechaHoraActual, productosVendidos, granTotal);
+                System.out.println("Método de pago seleccionado: " + metodoPago); // Aquí agregamos el código de impresión
+                registrarVentaEnBaseDeDatos(venta, idCliente, granTotal, metodoPago); // Llamada a registrarVentaEnBaseDeDatos
+            }
+        });
+        metodoPagoVentana.setVisible(true);
+    }              
+
+    public void metodoPagoSeleccionado(String metodoPago) {
+        try {
+            registrarCompra(nitCiTextField.getText(), nombreTextField.getText(), metodoPago);
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error al registrar la compra.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+        
+    private void mostrarVistaPreviaRecibo(String nitCi, String nombre, String metodoPago, double granTotal, List<Producto> productosVendidos) {
+        System.out.println("Valor de NIT/CI recibido: " + nitCi);
+        System.out.println("Valor de nombre recibido: " + nombre);
+        if (metodoPago != null) {
+            // Si el método de pago no es nulo, entonces mostrar la vista previa del recibo
+    
+            // Obtener la fecha y la hora actual
+            LocalDateTime fechaHoraActual = LocalDateTime.now();
+    
+            // Formatear la fecha y la hora en el formato deseado
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+            String fechaHoraFormateada = fechaHoraActual.format(formatter);
+    
+            // Verificar si el NIT/CI está vacío y ajustar el valor si es necesario
+            String nitCiMostrar = nitCi.isEmpty() ? "0" : nitCi;
+
+            // Verificar si el nombre está vacío y ajustar el valor si es necesario
+            String nombreMostrar = nombre.isEmpty() ? "S/N" : nombre;
+
+            // Construir el recibo completo aquí usando los datos proporcionados
+            StringBuilder sb = new StringBuilder();
+            sb.append("\t                  EMPRESA S.A.\n");
+            sb.append("----------------------------------------------------------------------------------------------\n");
+            sb.append(String.format("%-5s: %s\n", "Fecha Emision", fechaHoraFormateada));
+            sb.append(String.format("%-5s: %s\n", "NIT/CI", nitCiMostrar));
+            sb.append(String.format("%5s: %s\n", "Nombre", nombreMostrar));
+                sb.append("----------------------------------------------------------------------------------------------\n");
+                sb.append("Productos Comprados:\n");
+                sb.append(String.format("%-20s %-20s %-10s %-10s\n", "Producto", "Precio Unitario", "Cantidad", "Precio Total"));
+                // Resto del código dentro del bloque try-catch
+                for (int i = 0; i < tableModel.getRowCount(); i++) {
+                    String nombreProducto = (String) tableModel.getValueAt(i, 0);
+                    double precioUnitario = (double) tableModel.getValueAt(i, 1);
+                    int cantidad = (int) tableModel.getValueAt(i, 2);
+                    double precioTotal = precioUnitario * cantidad; // Calcular el precio total del producto
+    
+                    // Sumar el precio total al gran total
+                    granTotal += precioTotal;
+    
+                    // Datos de cada producto, alineados en las columnas correspondientes
+                    sb.append(String.format("%-20s Bs. %-19.2f %-10d Bs. %.2f\n", nombreProducto, precioUnitario, cantidad, precioTotal));
+                }
+                sb.append("----------------------------------------------------------------------------------------------\n");
+                sb.append(String.format("%-5s Bs. %.2f\n", "Monto Total:", granTotal));
+                sb.append(String.format("%-5s: %s\n", "Metodo de Pago", metodoPago));
+    
+                VistaPreviaRecibo vistaPreviaRecibo = new VistaPreviaRecibo(sb.toString());
+                vistaPreviaRecibo.setVisible(true);
+                dispose();
+            } else {
+                // Si el método de pago es nulo, imprimir un mensaje de error o manejar la situación según sea necesario
+                System.out.println("El método de pago es nulo.");
+            }
+        }       
+    
+    private void registrarVentaEnBaseDeDatos(Venta venta, int idCliente, double granTotal, String metodoPagoSeleccionado){
         // Información de conexión a la base de datos
         String url = "jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion";
         String usuario = "Neoar2000";
@@ -716,7 +826,7 @@ public class FacturacionInterfaz extends JFrame {
             connection = DriverManager.getConnection(url, usuario, contraseña);
             
             // Consulta SQL para insertar los datos de la venta
-            String sql = "INSERT INTO ventas (id_cliente, total, fecha) VALUES (?, ?, ?)";
+            String sql = "INSERT INTO ventas (id_cliente, total, fecha, metodo_pago) VALUES (?, ?, ?, ?)";
     
             // Preparar la declaración SQL para la inserción de datos
             try (PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -724,7 +834,7 @@ public class FacturacionInterfaz extends JFrame {
                 statement.setInt(1, idCliente); // Establecer el ID del cliente
                 statement.setDouble(2, granTotal); // Establecer el granTotal como el valor del total
                 statement.setTimestamp(3, Timestamp.valueOf(venta.getFechaHora()));
-                //statement.setString(4, venta.getMetodoPago()); // Suponiendo que tienes un método para obtener el método de pago de la venta
+                statement.setString(4, metodoPagoSeleccionado); // Utilizar el métodoPago proporcionado como parámetro
     
                 // Ejecutar la consulta SQL para insertar los datos en la base de datos
                 int filasInsertadas = statement.executeUpdate();
@@ -751,7 +861,7 @@ public class FacturacionInterfaz extends JFrame {
                 }
             }
         }
-    }        
+    }                
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {

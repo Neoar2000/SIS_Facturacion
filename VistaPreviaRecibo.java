@@ -42,6 +42,47 @@ public class VistaPreviaRecibo extends JFrame {
         });
     }
 
+    // Constructor adicional que acepta un método de pago y una cantidad ingresada en efectivo
+    public VistaPreviaRecibo(String recibo, double cantidadIngresada) {
+        setTitle("Factura de Venta");
+        setSize(600, 500); // Aumentar el tamaño de la ventana
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        reciboTextArea = new JTextArea(recibo);
+        reciboTextArea.setEditable(false);
+        reciboTextArea.setFont(new Font("Arial", Font.PLAIN, 16)); // Aumentar el tamaño de la fuente
+
+        // Agregar la información de la cantidad ingresada en efectivo al recibo
+        reciboTextArea.append("\n\n");
+        reciboTextArea.append("Cantidad Ingresada en Efectivo: " + cantidadIngresada + "\n");
+
+        JButton imprimirButton = new JButton("Imprimir");
+        imprimirButton.setFont(new Font("Arial", Font.BOLD, 16)); // Aumentar el tamaño de la fuente del botón
+        imprimirButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                imprimirRecibo();
+            }
+        });
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(imprimirButton);
+
+        getContentPane().setLayout(new BorderLayout());
+        getContentPane().add(new JScrollPane(reciboTextArea), BorderLayout.CENTER);
+        getContentPane().add(buttonPanel, BorderLayout.SOUTH);
+
+        // Agregar un WindowListener para detectar el cierre de la ventana
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+                // Volver a la ventana FacturacionInterfaz al cerrar la ventana de vista previa
+                volverAFacturacionInterfaz();
+            }
+        });
+    }
+
     private void imprimirRecibo() {
         // Crear un objeto PrinterJob
         PrinterJob printerJob = PrinterJob.getPrinterJob();
