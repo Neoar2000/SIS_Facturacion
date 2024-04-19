@@ -828,6 +828,10 @@ public class FacturacionInterfaz extends JFrame {
             sb.append(String.format("%5s: %s\n", "Nombre", nombreMostrar));
             sb.append("----------------------------------------------------------------------------------------------\n");
             sb.append(String.format("%-20s %-20s %-10s %-10s\n", "Producto", "Precio Unitario", "Cantidad", "Precio Total"));
+    
+            // Calcula el gran total correctamente sin sumarlo dentro del bucle
+            double granTotalCalculado = granTotal;
+    
             // Resto del código dentro del bloque try-catch
             for (int i = 0; i < tableModel.getRowCount(); i++) {
                 String nombreProducto = (String) tableModel.getValueAt(i, 0);
@@ -835,13 +839,20 @@ public class FacturacionInterfaz extends JFrame {
                 int cantidad = (int) tableModel.getValueAt(i, 2);
                 double precioTotal = precioUnitario * cantidad; // Calcular el precio total del producto
     
-                // Sumar el precio total al gran total
-                granTotal += precioTotal;
-    
                 // Datos de cada producto, alineados en las columnas correspondientes
                 sb.append(String.format("%-20s Bs. %-19.2f %-10d Bs. %.2f\n", nombreProducto, precioUnitario, cantidad, precioTotal));
+                
+                // Sumar el precio total al gran total calculado
+                granTotalCalculado += precioTotal;
             }
             sb.append("----------------------------------------------------------------------------------------------\n\n");
+    
+            // Verifica si hay una discrepancia entre el gran total calculado y el gran total pasado como argumento
+            if (granTotalCalculado != granTotal) {
+                // Imprime un mensaje de advertencia si hay una discrepancia
+                System.out.println("¡Advertencia! El gran total calculado difiere del gran total proporcionado.");
+            }
+    
             sb.append(String.format("%-5s Bs. %.2f\n\n", "Monto Total:", granTotal));
             sb.append(String.format("%-5s: %s\n\n", "Metodo de Pago", metodoPago));
     
@@ -858,7 +869,7 @@ public class FacturacionInterfaz extends JFrame {
             // Si el método de pago es nulo, imprimir un mensaje de error o manejar la situación según sea necesario
             System.out.println("El método de pago es nulo.");
         }
-    }      
+    }          
     
     private void registrarVentaEnBaseDeDatos(Venta venta, int idCliente, double granTotal, String metodoPagoSeleccionado){
         // Información de conexión a la base de datos
