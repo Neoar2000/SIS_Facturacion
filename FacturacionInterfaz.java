@@ -21,6 +21,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+
 public class FacturacionInterfaz extends JFrame {
     // Definición de la clase Cliente
     static class Cliente {
@@ -63,6 +66,7 @@ public class FacturacionInterfaz extends JFrame {
         setExtendedState(JFrame.MAXIMIZED_BOTH); // Establecer la ventana a pantalla completa
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+        UIManager.put("OptionPane.messageFont", new Font("Arial", Font.PLAIN, 20));
 
         cargarProductosDesdeBaseDeDatos();
 
@@ -444,6 +448,53 @@ public class FacturacionInterfaz extends JFrame {
         nombreLabel.setFont(new Font("Arial", Font.PLAIN, 20)); // Aumentar el tamaño de la fuente
         JTextField nombreTextField = new JTextField(15); // Establecer un ancho inicial
         nombreTextField.setFont(new Font("Arial", Font.PLAIN, 20)); // Aumentar el tamaño del texto
+        
+        // Agregar validación del campo NIT/CI
+        nitCiTextField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                validateNitCi();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                validateNitCi();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                validateNitCi();
+            }
+
+            private void validateNitCi() {
+                String nitCi = nitCiTextField.getText();
+                if (!nitCi.matches("[0-9EeGgDd-]{0,10}")) {
+                    // El texto ingresado no cumple con los criterios
+                    JOptionPane.showMessageDialog(datosClienteFrame, "Solo se acepta números, - y EGD, y un máximo de 10 caracteres.", "Error", JOptionPane.ERROR_MESSAGE);
+                    nitCiTextField.setText("");
+                }
+            }
+        });
+
+        // Agregar validación del campo Nombre
+        nombreTextField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                if (nombreTextField.getText().length() >= 50) {
+                    // El carácter ingresado no es una letra o se ha alcanzado el límite de caracteres
+                    e.consume(); // Evitar que se ingrese el carácter
+                    JOptionPane.showMessageDialog(datosClienteFrame, "Solo se acepta un máximo de 50 caracteres.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        // Agregar un filtro para convertir el texto a mayúsculas en el campo de nombre
+        ((AbstractDocument) nombreTextField.getDocument()).setDocumentFilter(new DocumentFilter() {
+            @Override
+            public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) throws BadLocationException {
+                super.replace(fb, offset, length, text.toUpperCase(), attrs); // Convertir el texto a mayúsculas antes de reemplazarlo
+            }
+        });
     
         // Autocompletar el nombre si ya ha sido registrado previamente
         nitCiTextField.addFocusListener(new FocusAdapter() {
@@ -456,14 +507,6 @@ public class FacturacionInterfaz extends JFrame {
                     // Se encontró un cliente con el NIT/CI proporcionado, llenar automáticamente el campo de nombre
                     nombreTextField.setText(nombreCliente);
                 }
-            }
-        });
-
-        // Agregar un filtro para convertir el texto a mayúsculas en el campo de nombre
-        ((AbstractDocument) nombreTextField.getDocument()).setDocumentFilter(new DocumentFilter() {
-            @Override
-            public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) throws BadLocationException {
-                super.replace(fb, offset, length, text.toUpperCase(), attrs); // Convertir el texto a mayúsculas antes de reemplazarlo
             }
         });
     
@@ -576,6 +619,7 @@ public class FacturacionInterfaz extends JFrame {
     }        
 
     private int registrarCliente(String nitCi, String nombre) {
+        // Verificar si los campos están vacíos y asignarles los valores predeterminados si es así
         if (mapaClientes.containsKey(nitCi)) {
             System.out.println("El cliente ya está registrado en la base de datos.");
             return mapaClientes.get(nitCi); // Devolver el ID del cliente existente
@@ -747,10 +791,8 @@ public class FacturacionInterfaz extends JFrame {
                     do {
                         JTextField cantidadPagadaField = new JTextField();
                         cantidadPagadaField.setFont(new Font("Arial", Font.PLAIN, 20)); // Establecer el tamaño de la fuente
-                        // Establecer el tamaño de la fuente para todos los componentes de Swing
-                        UIManager.put("OptionPane.messageFont", new Font("Arial", Font.BOLD, 20));
                         Object[] message = {
-                            "Ingrese la cantidad pagada en efectivo:", cantidadPagadaField
+                            "Ingrese la cantidad pagada:", cantidadPagadaField
                         };
                         int option = JOptionPane.showConfirmDialog(null, message, "Pago en Efectivo", JOptionPane.OK_CANCEL_OPTION);
                         if (option == JOptionPane.OK_OPTION) {
@@ -758,7 +800,7 @@ public class FacturacionInterfaz extends JFrame {
                                 cantidadPagada = Double.parseDouble(cantidadPagadaField.getText());
                                 if (cantidadPagada < granTotal) {
                                     // Si la cantidad pagada es menor que el gran total, mostrar un mensaje de error
-                                    JOptionPane.showMessageDialog(null, "La cantidad pagada debe ser igual o mayor al gran total. Intente nuevamente.");
+                                    JOptionPane.showMessageDialog(null, "La cantidad debe ser igual o mayor al total.");
                                 } else {
                                     cantidadValida = true;
                                     cambio = cantidadPagada - granTotal;
@@ -814,10 +856,10 @@ public class FacturacionInterfaz extends JFrame {
             String fechaHoraFormateada = fechaHoraActual.format(formatter);
     
             // Verificar si el NIT/CI está vacío y ajustar el valor si es necesario
-            String nitCiMostrar = nitCi.isEmpty() ? "0" : nitCi;
+            String nitCiMostrar = nitCi;
     
             // Verificar si el nombre está vacío y ajustar el valor si es necesario
-            String nombreMostrar = nombre.isEmpty() ? "S/N" : nombre;
+            String nombreMostrar = nombre;
     
             // Construir el recibo completo aquí usando los datos proporcionados
             StringBuilder sb = new StringBuilder();
