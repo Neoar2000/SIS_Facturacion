@@ -619,12 +619,12 @@ public class FacturacionInterfaz extends JFrame {
 
     // Método para registrar una compra en la base de datos
     private void registrarCompra(String nitCi, String nombre, String metodoPago) throws SQLException {
-        // Registrar el cliente y obtener su ID
+        /*// Registrar el cliente y obtener su ID
         int idCliente = registrarCliente(nitCi, nombre);
         if (idCliente == -1) {
             System.out.println("No se pudo registrar la compra porque no se pudo registrar el cliente.");
             return;
-        }
+        }*/
         
         // Continuar con el registro de la compra utilizando el ID del cliente
         try {
@@ -707,7 +707,7 @@ public class FacturacionInterfaz extends JFrame {
 
             abrirMetodoPago(nitCi, nombre, granTotal);
 
-            mostrarVistaPreviaRecibo(nitCi, nombre, metodoPago, granTotal, productosVendidos);
+            mostrarVistaPreviaRecibo(nitCi, nombre, metodoPago, granTotal, productosVendidos, 0, 0);
     
             //registrarVentaEnBaseDeDatos(venta, idCliente, granTotal, metodoPagoSeleccionado);
 
@@ -723,7 +723,7 @@ public class FacturacionInterfaz extends JFrame {
         List<Producto> productosVendidos = new ArrayList<>(); // Asegúrate de tener un método para obtener los productos vendidos
     
         // Mostrar la vista previa del recibo con los datos necesarios
-        mostrarVistaPreviaRecibo(nitCi, nombre, null, granTotal, productosVendidos);
+        mostrarVistaPreviaRecibo(nitCi, nombre, null, granTotal, productosVendidos, 0, 0);
         
         // Abrir la ventana de selección de método de pago
         MetodoPago metodoPagoVentana = new MetodoPago(this); // Pasar la instancia actual de FacturacionInterfaz
@@ -738,12 +738,54 @@ public class FacturacionInterfaz extends JFrame {
                 }
                 // Obtener la fecha y la hora actual
                 LocalDateTime fechaHoraActual = LocalDateTime.now();
-                // Una vez que se confirma el método de pago, actualizar el método de pago en el recibo y mostrar la vista previa del recibo nuevamente
-                mostrarVistaPreviaRecibo(nitCi, nombre, metodoPago, granTotal, productosVendidos);
-                // Crear una instancia de Venta con los datos de la compra
-                Venta venta = new Venta(nitCi, nombre, fechaHoraActual, productosVendidos, granTotal);
-                System.out.println("Método de pago seleccionado: " + metodoPago); // Aquí agregamos el código de impresión
-                registrarVentaEnBaseDeDatos(venta, idCliente, granTotal, metodoPago); // Llamada a registrarVentaEnBaseDeDatos
+                
+                // Si el método de pago es efectivo, solicitar la cantidad pagada
+                if (metodoPago.equals("Efectivo")) {
+                    double cantidadPagada = 0;
+                    double cambio = 0;
+                    boolean cantidadValida = false;
+                    do {
+                        JTextField cantidadPagadaField = new JTextField();
+                        cantidadPagadaField.setFont(new Font("Arial", Font.PLAIN, 20)); // Establecer el tamaño de la fuente
+                        // Establecer el tamaño de la fuente para todos los componentes de Swing
+                        UIManager.put("OptionPane.messageFont", new Font("Arial", Font.BOLD, 20));
+                        Object[] message = {
+                            "Ingrese la cantidad pagada en efectivo:", cantidadPagadaField
+                        };
+                        int option = JOptionPane.showConfirmDialog(null, message, "Pago en Efectivo", JOptionPane.OK_CANCEL_OPTION);
+                        if (option == JOptionPane.OK_OPTION) {
+                            try {
+                                cantidadPagada = Double.parseDouble(cantidadPagadaField.getText());
+                                if (cantidadPagada < granTotal) {
+                                    // Si la cantidad pagada es menor que el gran total, mostrar un mensaje de error
+                                    JOptionPane.showMessageDialog(null, "La cantidad pagada debe ser igual o mayor al gran total. Intente nuevamente.");
+                                } else {
+                                    cantidadValida = true;
+                                    cambio = cantidadPagada - granTotal;
+                                }
+                            } catch (NumberFormatException e) {
+                                JOptionPane.showMessageDialog(null, "Cantidad inválida. Intente nuevamente.");
+                            }
+                        } else {
+                            // Si se cancela el diálogo, salir del bucle
+                            return;
+                        }
+                    } while (!cantidadValida);
+
+                    // Si hay cambio, mostrarlo en un mensaje
+                    if (cambio > 0) {
+                        JOptionPane.showMessageDialog(null, String.format("Cambio: Bs. %.2f", cambio));
+                    }
+                    // Mostrar la vista previa del recibo con la cantidad pagada y el cambio
+                    mostrarVistaPreviaRecibo(nitCi, nombre, metodoPago, granTotal, productosVendidos, cantidadPagada, cambio);
+                    // Crear una instancia de la venta con los datos necesarios
+                    Venta venta = new Venta(nitCi, nombre, fechaHoraActual, productosVendidos, granTotal);
+                    System.out.println("Método de pago seleccionado: " + metodoPago); // Aquí agregamos el código de impresión
+                    registrarVentaEnBaseDeDatos(venta, idCliente, granTotal, metodoPago); // Registrar la venta en la base de datos
+                } else {
+                    // Si el método de pago no es efectivo, mostrar la vista previa del recibo sin solicitar la cantidad pagada
+                    mostrarVistaPreviaRecibo(nitCi, nombre, metodoPago, granTotal, productosVendidos, 0, 0);
+                }
             }
         });
         metodoPagoVentana.setVisible(true);
@@ -758,7 +800,7 @@ public class FacturacionInterfaz extends JFrame {
         }
     }
         
-    private void mostrarVistaPreviaRecibo(String nitCi, String nombre, String metodoPago, double granTotal, List<Producto> productosVendidos) {
+    private void mostrarVistaPreviaRecibo(String nitCi, String nombre, String metodoPago, double granTotal, List<Producto> productosVendidos, double cantidadPagada, double cambio) {
         System.out.println("Valor de NIT/CI recibido: " + nitCi);
         System.out.println("Valor de nombre recibido: " + nombre);
         if (metodoPago != null) {
@@ -773,10 +815,10 @@ public class FacturacionInterfaz extends JFrame {
     
             // Verificar si el NIT/CI está vacío y ajustar el valor si es necesario
             String nitCiMostrar = nitCi.isEmpty() ? "0" : nitCi;
-
+    
             // Verificar si el nombre está vacío y ajustar el valor si es necesario
             String nombreMostrar = nombre.isEmpty() ? "S/N" : nombre;
-
+    
             // Construir el recibo completo aquí usando los datos proporcionados
             StringBuilder sb = new StringBuilder();
             sb.append("\t                  EMPRESA S.A.\n");
@@ -784,34 +826,39 @@ public class FacturacionInterfaz extends JFrame {
             sb.append(String.format("%-5s: %s\n", "Fecha Emision", fechaHoraFormateada));
             sb.append(String.format("%-5s: %s\n", "NIT/CI", nitCiMostrar));
             sb.append(String.format("%5s: %s\n", "Nombre", nombreMostrar));
-                sb.append("----------------------------------------------------------------------------------------------\n");
-                sb.append("Productos Comprados:\n");
-                sb.append(String.format("%-20s %-20s %-10s %-10s\n", "Producto", "Precio Unitario", "Cantidad", "Precio Total"));
-                // Resto del código dentro del bloque try-catch
-                for (int i = 0; i < tableModel.getRowCount(); i++) {
-                    String nombreProducto = (String) tableModel.getValueAt(i, 0);
-                    double precioUnitario = (double) tableModel.getValueAt(i, 1);
-                    int cantidad = (int) tableModel.getValueAt(i, 2);
-                    double precioTotal = precioUnitario * cantidad; // Calcular el precio total del producto
+            sb.append("----------------------------------------------------------------------------------------------\n");
+            sb.append(String.format("%-20s %-20s %-10s %-10s\n", "Producto", "Precio Unitario", "Cantidad", "Precio Total"));
+            // Resto del código dentro del bloque try-catch
+            for (int i = 0; i < tableModel.getRowCount(); i++) {
+                String nombreProducto = (String) tableModel.getValueAt(i, 0);
+                double precioUnitario = (double) tableModel.getValueAt(i, 1);
+                int cantidad = (int) tableModel.getValueAt(i, 2);
+                double precioTotal = precioUnitario * cantidad; // Calcular el precio total del producto
     
-                    // Sumar el precio total al gran total
-                    granTotal += precioTotal;
+                // Sumar el precio total al gran total
+                granTotal += precioTotal;
     
-                    // Datos de cada producto, alineados en las columnas correspondientes
-                    sb.append(String.format("%-20s Bs. %-19.2f %-10d Bs. %.2f\n", nombreProducto, precioUnitario, cantidad, precioTotal));
-                }
-                sb.append("----------------------------------------------------------------------------------------------\n");
-                sb.append(String.format("%-5s Bs. %.2f\n", "Monto Total:", granTotal));
-                sb.append(String.format("%-5s: %s\n", "Metodo de Pago", metodoPago));
-    
-                VistaPreviaRecibo vistaPreviaRecibo = new VistaPreviaRecibo(sb.toString());
-                vistaPreviaRecibo.setVisible(true);
-                dispose();
-            } else {
-                // Si el método de pago es nulo, imprimir un mensaje de error o manejar la situación según sea necesario
-                System.out.println("El método de pago es nulo.");
+                // Datos de cada producto, alineados en las columnas correspondientes
+                sb.append(String.format("%-20s Bs. %-19.2f %-10d Bs. %.2f\n", nombreProducto, precioUnitario, cantidad, precioTotal));
             }
-        }       
+            sb.append("----------------------------------------------------------------------------------------------\n\n");
+            sb.append(String.format("%-5s Bs. %.2f\n\n", "Monto Total:", granTotal));
+            sb.append(String.format("%-5s: %s\n\n", "Metodo de Pago", metodoPago));
+    
+            if (metodoPago.equals("Efectivo")) {
+                // Mostrar la cantidad pagada y el cambio si el método de pago es efectivo
+                sb.append(String.format("%-5s Bs. %.2f\n", "Efectivo pagado:", cantidadPagada));
+                sb.append(String.format("%-5s Bs. %.2f\n", "Cambio:", cambio));
+            }
+    
+            VistaPreviaRecibo vistaPreviaRecibo = new VistaPreviaRecibo(sb.toString());
+            vistaPreviaRecibo.setVisible(true);
+            dispose();
+        } else {
+            // Si el método de pago es nulo, imprimir un mensaje de error o manejar la situación según sea necesario
+            System.out.println("El método de pago es nulo.");
+        }
+    }      
     
     private void registrarVentaEnBaseDeDatos(Venta venta, int idCliente, double granTotal, String metodoPagoSeleccionado){
         // Información de conexión a la base de datos
