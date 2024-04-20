@@ -182,11 +182,11 @@ public class FacturacionInterfaz extends JFrame {
         // Panel para los botones de acción (Agregar Producto y Modificar Cantidad)
         JPanel topButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         JButton agregarButton = new JButton("Agregar Producto");
-        agregarButton.setFont(new Font(agregarButton.getFont().getName(), Font.PLAIN, 20)); // Aumentar el tamaño del texto del botón
+        agregarButton.setFont(new Font(agregarButton.getFont().getName(), Font.BOLD, 20)); // Aumentar el tamaño del texto del botón
         agregarButton.addActionListener(e -> mostrarVentanaProductos());
 
         JButton modificarCantidadButton = new JButton("Modificar Cantidad");
-        modificarCantidadButton.setFont(new Font(modificarCantidadButton.getFont().getName(), Font.PLAIN, 20)); // Aumentar el tamaño del texto del botón
+        modificarCantidadButton.setFont(new Font(modificarCantidadButton.getFont().getName(), Font.BOLD, 20)); // Aumentar el tamaño del texto del botón
         modificarCantidadButton.addActionListener(e -> modificarCantidadProducto());
 
         topButtonPanel.add(agregarButton);
@@ -195,11 +195,11 @@ public class FacturacionInterfaz extends JFrame {
         // Panel para los botones de acción (Finalizar Compra y Eliminar Producto)
         JPanel bottomButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         JButton finalizarButton = new JButton("Finalizar Compra");
-        finalizarButton.setFont(new Font(finalizarButton.getFont().getName(), Font.PLAIN, 20)); // Aumentar el tamaño del texto del botón
+        finalizarButton.setFont(new Font(finalizarButton.getFont().getName(), Font.BOLD, 20)); // Aumentar el tamaño del texto del botón
         finalizarButton.addActionListener(e -> mostrarVentanaDatosCliente());
 
         JButton eliminarButton = new JButton("Eliminar Producto");
-        eliminarButton.setFont(new Font(eliminarButton.getFont().getName(), Font.PLAIN, 20)); // Aumentar el tamaño del texto del botón
+        eliminarButton.setFont(new Font(eliminarButton.getFont().getName(), Font.BOLD, 20)); // Aumentar el tamaño del texto del botón
         eliminarButton.addActionListener(e -> eliminarProductoSeleccionado());
 
         bottomButtonPanel.add(eliminarButton);
@@ -210,7 +210,7 @@ public class FacturacionInterfaz extends JFrame {
 
         // Botón "Salir del Sistema" en el SOUTH
         JButton salirButton = new JButton("Salir del Sistema");
-        salirButton.setFont(new Font(salirButton.getFont().getName(), Font.PLAIN, 20)); // Aumentar el tamaño del texto del botón
+        salirButton.setFont(new Font(salirButton.getFont().getName(), Font.BOLD, 20)); // Aumentar el tamaño del texto del botón
         salirButton.addActionListener(e -> System.exit(0)); // Salir completamente del sistema
 
         buttonPanel.add(salirButton, BorderLayout.SOUTH); // Agregar el botón de salir del sistema en el sur
@@ -269,7 +269,7 @@ public class FacturacionInterfaz extends JFrame {
                 productosTable.clearSelection();
             }
         } else {
-            JOptionPane.showMessageDialog(this, "Por favor, seleccione un producto para modificar su cantidad.", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Debe seleccionar un producto para modificar su cantidad.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }                          
 
@@ -279,7 +279,7 @@ public class FacturacionInterfaz extends JFrame {
             tableModel.removeRow(selectedRow);
             actualizarTotal();
         } else {
-            JOptionPane.showMessageDialog(null, "Por favor, seleccione un producto para eliminar.", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, "Debe seleccionar un producto para eliminar.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -315,7 +315,7 @@ public class FacturacionInterfaz extends JFrame {
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error al cargar los productos desde la base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error al cargar productos desde la base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }    
 
@@ -378,7 +378,6 @@ public class FacturacionInterfaz extends JFrame {
 
                                 // Actualizar el total
                                 actualizarTotal();
-                                productosFrame.dispose();
                             } else {
                                 JOptionPane.showMessageDialog(productosFrame, "La cantidad debe ser un número entero positivo.", "Error", JOptionPane.ERROR_MESSAGE);
                             }
@@ -390,7 +389,7 @@ public class FacturacionInterfaz extends JFrame {
                     }
                     else if (option == JOptionPane.CANCEL_OPTION || option == JOptionPane.CLOSED_OPTION) {
                         productosTable.clearSelection(); // Deseleccionar la fila seleccionada
-                    }
+                    }                    
                 }
             }
 });
@@ -400,6 +399,18 @@ public class FacturacionInterfaz extends JFrame {
     
         // Agregar el JScrollPane al panel principal de la ventana
         productosFrame.add(scrollPane);
+
+        // Agregar botón "Confirmar" en la parte inferior de la ventana
+        JButton confirmarButton = new JButton("Confirmar");
+        confirmarButton.setFont(new Font("Arial", Font.BOLD, 20));
+        confirmarButton.addActionListener(e -> {
+            if (tableModel.getRowCount() > 0) {
+                productosFrame.dispose(); // Cerrar la ventana si hay al menos un producto
+            } else {
+                JOptionPane.showMessageDialog(productosFrame, "Agregue al menos un producto antes de confirmar.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        productosFrame.add(confirmarButton, BorderLayout.SOUTH);
     
         // Hacer visible la ventana
         productosFrame.setVisible(true);
@@ -419,7 +430,7 @@ public class FacturacionInterfaz extends JFrame {
         // Verificar si hay productos agregados
         if (tableModel.getRowCount() == 0) {
             // Mostrar mensaje de error
-            JOptionPane.showMessageDialog(this, "Debe agregar al menos un producto para finalizar la compra.", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Agregue al menos un producto para finalizar compra.", "Error", JOptionPane.ERROR_MESSAGE);
             return; // Salir del método sin continuar
         }
     
@@ -653,7 +664,7 @@ public class FacturacionInterfaz extends JFrame {
     
         } catch (SQLException ex) {
             ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error al registrar el cliente en la base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error al registrar cliente en la base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     
         mapaClientes.put(nitCi, idCliente); // Guardar la relación en el mapa
@@ -731,7 +742,7 @@ public class FacturacionInterfaz extends JFrame {
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
-                JOptionPane.showMessageDialog(this, "Error al cargar los productos desde la base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Error al cargar productos desde la base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
                 throw e; // Lanzar la excepción hacia arriba para que sea manejada por el llamador
             } finally {
                 if (sistemaDAO != null) {
@@ -757,7 +768,7 @@ public class FacturacionInterfaz extends JFrame {
 
         } catch (SQLException ex) {
             ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error al registrar la venta en la base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error al registrar venta en la base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
             throw ex; // Lanzar la excepción hacia arriba para que sea manejada por el llamador
         }
     }
@@ -816,7 +827,7 @@ public class FacturacionInterfaz extends JFrame {
 
                     // Si hay cambio, mostrarlo en un mensaje
                     if (cambio > 0) {
-                        JOptionPane.showMessageDialog(null, String.format("Cambio: Bs. %.2f", cambio));
+                        JOptionPane.showMessageDialog(null, String.format("Cambio a entregar: Bs. %.2f", cambio));
                     }
                     // Mostrar la vista previa del recibo con la cantidad pagada y el cambio
                     mostrarVistaPreviaRecibo(nitCi, nombre, metodoPago, granTotal, productosVendidos, cantidadPagada, cambio);
