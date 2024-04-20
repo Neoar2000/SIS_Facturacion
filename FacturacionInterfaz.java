@@ -66,7 +66,7 @@ public class FacturacionInterfaz extends JFrame {
         setExtendedState(JFrame.MAXIMIZED_BOTH); // Establecer la ventana a pantalla completa
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
-        UIManager.put("OptionPane.messageFont", new Font("Arial", Font.PLAIN, 20));
+        UIManager.put("OptionPane.messageFont", new Font("Arial", Font.BOLD, 20));
 
         cargarProductosDesdeBaseDeDatos();
 
@@ -827,6 +827,9 @@ public class FacturacionInterfaz extends JFrame {
                 } else {
                     // Si el método de pago no es efectivo, mostrar la vista previa del recibo sin solicitar la cantidad pagada
                     mostrarVistaPreviaRecibo(nitCi, nombre, metodoPago, granTotal, productosVendidos, 0, 0);
+                    Venta venta = new Venta(nitCi, nombre, fechaHoraActual, productosVendidos, granTotal);
+                    System.out.println("Método de pago seleccionado: " + metodoPago); // Aquí agregamos el código de impresión
+                    registrarVentaEnBaseDeDatos(venta, idCliente, granTotal, metodoPago); // Registrar la venta en la base de datos
                 }
             }
         });
