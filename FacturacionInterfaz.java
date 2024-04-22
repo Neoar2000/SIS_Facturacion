@@ -801,7 +801,7 @@ public class FacturacionInterfaz extends JFrame {
         mostrarVistaPreviaRecibo(nitCi, nombre, null, granTotal, productosVendidos, 0, 0);
         
         // Abrir la ventana de selección de método de pago
-        MetodoPago metodoPagoVentana = new MetodoPago(this); // Pasar la instancia actual de FacturacionInterfaz
+        MetodoPago metodoPagoVentana = new MetodoPago(this, this); // Pasar la instancia actual de FacturacionInterfaz y el JFrame
         metodoPagoVentana.setMetodoPagoListener(new MetodoPagoListener() {
             @Override
             public void metodoPagoConfirmado(String metodoPago) {
@@ -844,7 +844,7 @@ public class FacturacionInterfaz extends JFrame {
                             return;
                         }
                     } while (!cantidadValida);
-
+    
                     // Si hay cambio, mostrarlo en un mensaje
                     if (cambio > 0) {
                         JOptionPane.showMessageDialog(null, String.format("Cambio a entregar: Bs. %.2f", cambio));
@@ -865,7 +865,7 @@ public class FacturacionInterfaz extends JFrame {
             }
         });
         metodoPagoVentana.setVisible(true);
-    }              
+    }                  
 
     public void metodoPagoSeleccionado(String metodoPago) {
         try {

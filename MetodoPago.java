@@ -2,7 +2,7 @@ import javax.swing.*;
 import java.awt.*;
 import javax.swing.border.EmptyBorder;
 
-public class MetodoPago extends JFrame {
+public class MetodoPago extends JDialog {
     private FacturacionInterfaz facturacionInterfaz;
     private JLabel headerLabel;
     private JButton efectivoButton;
@@ -10,13 +10,13 @@ public class MetodoPago extends JFrame {
     private JButton tarjetaButton;
     private MetodoPagoListener listener;
 
-    public MetodoPago(FacturacionInterfaz facturacionInterfaz) {
+    public MetodoPago(JFrame parentFrame, FacturacionInterfaz facturacionInterfaz) {
+        super(parentFrame, "Seleccionar Método de Pago", true); // Establecer el padre y la modalidad
         this.facturacionInterfaz = facturacionInterfaz;
         
-        setTitle("Seleccionar Método de Pago");
         setSize(400, 150);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setLocationRelativeTo(null);
+        setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        setLocationRelativeTo(parentFrame);
 
         headerLabel = new JLabel("Método de Pago", SwingConstants.CENTER); // Alinear el texto al centro
         Font headerFont = headerLabel.getFont();
@@ -50,7 +50,7 @@ public class MetodoPago extends JFrame {
         if (listener != null) {
             listener.metodoPagoConfirmado(metodoPago);
         }
-        dispose();
+        setVisible(false); // Ocultar el diálogo en lugar de cerrarlo
     }    
 
     public void setFacturacionInterfaz(FacturacionInterfaz facturacionInterfaz) {
