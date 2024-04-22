@@ -299,7 +299,7 @@ public class FacturacionInterfaz extends JFrame {
         productos = new ArrayList<>();
     
         // Conectar a la base de datos
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.")) {
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.")) {
             try (SistemaDAO sistemaDAO = new SistemaDAO(connection)) {
                 // Crear una consulta SQL para seleccionar todos los productos
                 String sql = "SELECT nombre, precio FROM productos";
@@ -597,7 +597,7 @@ public class FacturacionInterfaz extends JFrame {
 
         try {
             // Establecer la conexión con la base de datos
-            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.");
+            connection = DriverManager.getConnection("jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.");
 
             // Preparar la consulta SQL
             String sql = "SELECT id, nombre FROM clientes WHERE nit_ci = ?";
@@ -657,7 +657,7 @@ public class FacturacionInterfaz extends JFrame {
         }
     
         // Realizar la inserción de los datos del cliente en la tabla "clientes" en la base de datos MySQL
-        String url = "jdbc:mysql://localhost:3306/SIS_Facturacion";
+        String url = "jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion";
         String usuario = "Neoar2000";
         String contraseña = "Guitarhero3-*$.";
         String sql = "INSERT INTO clientes (nit_ci, nombre) VALUES (?, ?)";
@@ -736,7 +736,7 @@ public class FacturacionInterfaz extends JFrame {
     
             // Declaración de la instancia de SistemaDAO fuera del bloque try-catch
             SistemaDAO sistemaDAO = null;
-            Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.");
+            Connection connection = DriverManager.getConnection("jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.");
             try {
                 sistemaDAO = new SistemaDAO(connection); // Instanciamos el sistemaDAO
     
@@ -949,7 +949,7 @@ public class FacturacionInterfaz extends JFrame {
     
     private void registrarVentaEnBaseDeDatos(Venta venta, int idCliente, double granTotal, String metodoPagoSeleccionado){
         // Información de conexión a la base de datos
-        String url = "jdbc:mysql://localhost:3306/SIS_Facturacion";
+        String url = "jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion";
         String usuario = "Neoar2000";
         String contraseña = "Guitarhero3-*$.";
         
