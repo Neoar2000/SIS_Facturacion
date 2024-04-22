@@ -52,9 +52,6 @@ public class FacturacionInterfaz extends JFrame {
     private String metodoPagoSeleccionado;
     private JTextField nitCiTextField;
     private JTextField nombreTextField;
-    private String nitCi;
-    private String nombre;
-
 
     // Lista de productos de ejemplo
     private List<Producto> productos = new ArrayList<>();
@@ -235,16 +232,25 @@ public class FacturacionInterfaz extends JFrame {
             int cantidad = (int) tableModel.getValueAt(selectedRow, 2); // Obtener la cantidad actual del producto
             JTextField cantidadField = new JTextField(String.valueOf(cantidad));
             cantidadField.setFont(new Font("Arial", Font.PLAIN, 20)); // Aumentar el tamaño de la fuente
-            
+    
             // Crear un panel personalizado para el mensaje con el tamaño de fuente deseado
-            JPanel panel = new JPanel(new GridLayout(0, 1));
+            JPanel panel = new JPanel(new GridLayout(0, 1, 10, 10)); // Espacio entre componentes
+            panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Margen exterior
             JLabel label = new JLabel("Ingrese la nueva cantidad:");
             label.setFont(new Font("Arial", Font.BOLD, 20)); // Aumentar el tamaño de la fuente
             panel.add(label);
             panel.add(cantidadField);
     
-            int option = JOptionPane.showConfirmDialog(this, panel, "Modificar Cantidad", JOptionPane.OK_CANCEL_OPTION);
-            if (option == JOptionPane.OK_OPTION) {
+            // Mostrar el cuadro de diálogo con el panel personalizado
+            JDialog dialog = new JDialog();
+            dialog.setTitle("Modificar Cantidad");
+            dialog.setModal(true); // Hacer la ventana modal
+            dialog.getContentPane().add(panel, BorderLayout.CENTER);
+            
+            // Agregar un botón "Aceptar" al cuadro de diálogo
+            JButton aceptarButton = new JButton("Aceptar");
+            aceptarButton.setFont(new Font("Arial", Font.BOLD, 20));
+            aceptarButton.addActionListener(e -> {
                 try {
                     int nuevaCantidad = Integer.parseInt(cantidadField.getText());
                     if (nuevaCantidad > 0) {
@@ -257,22 +263,27 @@ public class FacturacionInterfaz extends JFrame {
                         // Actualizar el precio total en la columna correspondiente del modelo de la tabla
                         tableModel.setValueAt(nuevoPrecioTotal, selectedRow, 3);
                         actualizarTotal();
+                        dialog.dispose(); // Cerrar el diálogo después de aceptar
                     } else {
-                        JOptionPane.showMessageDialog(this, "La cantidad debe ser un número positivo.", "Error", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(dialog, "La cantidad debe ser un número positivo.", "Error", JOptionPane.ERROR_MESSAGE);
                         productosTable.clearSelection();
                     }
                 } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(this, "Ingrese un número válido para la cantidad.", "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(dialog, "Ingrese un número válido para la cantidad.", "Error", JOptionPane.ERROR_MESSAGE);
                     productosTable.clearSelection();
                 }
-            } else {
-                productosTable.clearSelection();
-            }
+            });
+            dialog.getContentPane().add(aceptarButton, BorderLayout.SOUTH);
+    
+            // Mostrar el diálogo
+            dialog.pack();
+            dialog.setLocationRelativeTo(this); // Centrar el diálogo respecto a la ventana principal
+            dialog.setVisible(true);
         } else {
             JOptionPane.showMessageDialog(this, "Debe seleccionar un producto para modificar su cantidad.", "Error", JOptionPane.ERROR_MESSAGE);
         }
-    }                          
-
+    }
+    
     private void eliminarProductoSeleccionado() {
         int selectedRow = productosTable.getSelectedRow();
         if (selectedRow != -1) {
@@ -288,7 +299,7 @@ public class FacturacionInterfaz extends JFrame {
         productos = new ArrayList<>();
     
         // Conectar a la base de datos
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.")) {
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.")) {
             try (SistemaDAO sistemaDAO = new SistemaDAO(connection)) {
                 // Crear una consulta SQL para seleccionar todos los productos
                 String sql = "SELECT nombre, precio FROM productos";
@@ -320,10 +331,11 @@ public class FacturacionInterfaz extends JFrame {
     }    
 
     private void mostrarVentanaProductos() {
-        // Crear una nueva ventana para mostrar los productos
-        JFrame productosFrame = new JFrame("Selección de Productos");
-        productosFrame.setSize(500, 400); // Aumentar el tamaño de la ventana
-        productosFrame.setLocationRelativeTo(null);
+        // Crear una nueva ventana de diálogo para mostrar los productos
+        JDialog productosDialog = new JDialog();
+        productosDialog.setTitle("Selección de Productos");
+        productosDialog.setSize(500, 400); // Aumentar el tamaño de la ventana
+        productosDialog.setLocationRelativeTo(null);
     
         // Crear tabla para mostrar productos
         DefaultTableModel productosTableModel = new DefaultTableModel() {
@@ -364,9 +376,9 @@ public class FacturacionInterfaz extends JFrame {
                     JTextField cantidadField = new JTextField();
                     cantidadField.setFont(new Font("Arial", Font.PLAIN, 20)); // Aumentar el tamaño de la fuente
                     panel.add(cantidadField);
-
+    
                     // Mostrar el cuadro de diálogo con el panel personalizado
-                    int option = JOptionPane.showConfirmDialog(productosFrame, panel, "Cantidad", JOptionPane.OK_CANCEL_OPTION);
+                    int option = JOptionPane.showConfirmDialog(productosDialog, panel, "Cantidad", JOptionPane.OK_CANCEL_OPTION);
                     if (option == JOptionPane.OK_OPTION) {
                         try {
                             // Verificar si se ingresó una cantidad
@@ -375,46 +387,48 @@ public class FacturacionInterfaz extends JFrame {
                                 // Agregar el producto seleccionado con la cantidad ingresada a la tabla principal
                                 Object[] rowData = {selectedProduct.getNombre(), selectedProduct.getPrecio(), cantidad, selectedProduct.getPrecio() * cantidad};
                                 tableModel.addRow(rowData);
-
+    
                                 // Actualizar el total
                                 actualizarTotal();
                             } else {
-                                JOptionPane.showMessageDialog(productosFrame, "La cantidad debe ser un número entero positivo.", "Error", JOptionPane.ERROR_MESSAGE);
+                                JOptionPane.showMessageDialog(productosDialog, "La cantidad debe ser un número entero positivo.", "Error", JOptionPane.ERROR_MESSAGE);
                             }
                         } catch (NumberFormatException ex) {
-                            JOptionPane.showMessageDialog(productosFrame, "Ingrese un número entero válido.", "Error", JOptionPane.ERROR_MESSAGE);
+                            JOptionPane.showMessageDialog(productosDialog, "Ingrese un número entero válido.", "Error", JOptionPane.ERROR_MESSAGE);
                         } finally {
                             productosTable.clearSelection();
                         }
-                    }
-                    else if (option == JOptionPane.CANCEL_OPTION || option == JOptionPane.CLOSED_OPTION) {
+                    } else if (option == JOptionPane.CANCEL_OPTION || option == JOptionPane.CLOSED_OPTION) {
                         productosTable.clearSelection(); // Deseleccionar la fila seleccionada
-                    }                    
+                    }
                 }
             }
-});
+        });
     
         // Agregar la tabla a un JScrollPane
         JScrollPane scrollPane = new JScrollPane(productosTable);
     
         // Agregar el JScrollPane al panel principal de la ventana
-        productosFrame.add(scrollPane);
-
+        productosDialog.add(scrollPane);
+    
         // Agregar botón "Confirmar" en la parte inferior de la ventana
         JButton confirmarButton = new JButton("Confirmar");
         confirmarButton.setFont(new Font("Arial", Font.BOLD, 20));
         confirmarButton.addActionListener(e -> {
             if (tableModel.getRowCount() > 0) {
-                productosFrame.dispose(); // Cerrar la ventana si hay al menos un producto
+                productosDialog.dispose(); // Cerrar la ventana si hay al menos un producto
             } else {
-                JOptionPane.showMessageDialog(productosFrame, "Agregue al menos un producto antes de confirmar.", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(productosDialog, "Agregue al menos un producto antes de confirmar.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
-        productosFrame.add(confirmarButton, BorderLayout.SOUTH);
+        productosDialog.add(confirmarButton, BorderLayout.SOUTH);
     
-        // Hacer visible la ventana
-        productosFrame.setVisible(true);
-    }           
+        // Hacer la ventana de diálogo modal
+        productosDialog.setModal(true);
+    
+        // Hacer visible la ventana de diálogo
+        productosDialog.setVisible(true);
+    }               
 
     private void actualizarTotal() {
         double total = 0;
@@ -434,21 +448,27 @@ public class FacturacionInterfaz extends JFrame {
             return; // Salir del método sin continuar
         }
     
-        JFrame datosClienteFrame = new JFrame("Datos del Cliente");
-        datosClienteFrame.setSize(500, 250); // Aumentar el tamaño de la ventana
-        datosClienteFrame.setLocationRelativeTo(null);
+        // Crear un cuadro de diálogo en lugar de una ventana
+        JDialog datosClienteDialog = new JDialog();
+        datosClienteDialog.setTitle("Datos del Cliente");
+        datosClienteDialog.setSize(400, 200); // Aumentar el tamaño del cuadro de diálogo
+        datosClienteDialog.setModal(true); // Hacer que el cuadro de diálogo sea modal
+        datosClienteDialog.setLocationRelativeTo(this); // Centrar el cuadro de diálogo respecto a la ventana principal
     
-        // Crear un JLabel para el título "Datos del Cliente"
-        JLabel titleLabel = new JLabel("Datos del Cliente");
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 24)); // Aumentar el tamaño de la fuente y hacerla negrita
-        titleLabel.setHorizontalAlignment(SwingConstants.CENTER); // Centrar el texto
-    
-        // Agregar el JLabel al panel de datos del cliente
-        datosClienteFrame.add(titleLabel, BorderLayout.NORTH);
-    
+        // Crear un JPanel para el contenido del cuadro de diálogo
         JPanel datosClientePanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 10, 5, 10); // Ajustar los márgenes para reducir el espacio alrededor de los componentes
+
+        JLabel titleLabel = new JLabel("Datos del Cliente");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 24)); // Aumentar el tamaño de la fuente y hacerla negrita
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER); // Centrar el texto
+        gbc.gridx = 0;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
+        datosClientePanel.add(titleLabel, gbc);
+        gbc.gridwidth = 1;
+        gbc.anchor = GridBagConstraints.WEST;
     
         JLabel nitCiLabel = new JLabel("NIT/CI:");
         nitCiLabel.setFont(new Font("Arial", Font.PLAIN, 20)); // Aumentar el tamaño de la fuente
@@ -459,34 +479,34 @@ public class FacturacionInterfaz extends JFrame {
         nombreLabel.setFont(new Font("Arial", Font.PLAIN, 20)); // Aumentar el tamaño de la fuente
         JTextField nombreTextField = new JTextField(15); // Establecer un ancho inicial
         nombreTextField.setFont(new Font("Arial", Font.PLAIN, 20)); // Aumentar el tamaño del texto
-        
+    
         // Agregar validación del campo NIT/CI
         nitCiTextField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
                 validateNitCi();
             }
-
+    
             @Override
             public void removeUpdate(DocumentEvent e) {
                 validateNitCi();
             }
-
+    
             @Override
             public void changedUpdate(DocumentEvent e) {
                 validateNitCi();
             }
-
+    
             private void validateNitCi() {
                 String nitCi = nitCiTextField.getText();
                 if (!nitCi.matches("[0-9EeGgDd-]{0,10}")) {
                     // El texto ingresado no cumple con los criterios
-                    JOptionPane.showMessageDialog(datosClienteFrame, "Solo se acepta números, - y EGD, y un máximo de 10 caracteres.", "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(datosClienteDialog, "Solo se acepta números, - y EGD, y un máximo de 10 caracteres.", "Error", JOptionPane.ERROR_MESSAGE);
                     nitCiTextField.setText("");
                 }
             }
         });
-
+    
         // Agregar validación del campo Nombre
         nombreTextField.addKeyListener(new KeyAdapter() {
             @Override
@@ -494,11 +514,11 @@ public class FacturacionInterfaz extends JFrame {
                 if (nombreTextField.getText().length() >= 50) {
                     // El carácter ingresado no es una letra o se ha alcanzado el límite de caracteres
                     e.consume(); // Evitar que se ingrese el carácter
-                    JOptionPane.showMessageDialog(datosClienteFrame, "Solo se acepta un máximo de 50 caracteres.", "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(datosClienteDialog, "Solo se acepta un máximo de 50 caracteres.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
-
+    
         // Agregar un filtro para convertir el texto a mayúsculas en el campo de nombre
         ((AbstractDocument) nombreTextField.getDocument()).setDocumentFilter(new DocumentFilter() {
             @Override
@@ -506,7 +526,7 @@ public class FacturacionInterfaz extends JFrame {
                 super.replace(fb, offset, length, text.toUpperCase(), attrs); // Convertir el texto a mayúsculas antes de reemplazarlo
             }
         });
-    
+
         // Autocompletar el nombre si ya ha sido registrado previamente
         nitCiTextField.addFocusListener(new FocusAdapter() {
             @Override
@@ -522,12 +542,12 @@ public class FacturacionInterfaz extends JFrame {
         });
     
         gbc.gridx = 0;
-        gbc.gridy = 0;
+        gbc.gridy = 1;
         datosClientePanel.add(nitCiLabel, gbc);
         gbc.gridx = 1;
         datosClientePanel.add(nitCiTextField, gbc);
         gbc.gridx = 0;
-        gbc.gridy = 1;
+        gbc.gridy = 2;
         datosClientePanel.add(nombreLabel, gbc);
         gbc.gridx = 1;
         datosClientePanel.add(nombreTextField, gbc);
@@ -538,28 +558,28 @@ public class FacturacionInterfaz extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 // Obtener los datos del cliente y asignarlos a las variables de instancia
-                nitCi = nitCiTextField.getText();
-                nombre = nombreTextField.getText();
-
+                String nitCi = nitCiTextField.getText();
+                String nombre = nombreTextField.getText();
+    
                 registrarCliente(nitCi, nombre);
-
+    
                 // Realizar el registro de la compra con los datos del cliente y generar la factura
                 try {
                     registrarCompra(nitCi, nombre, metodoPagoSeleccionado);
                 } catch (SQLException e1) {
                     e1.printStackTrace();
                 }
-
-                // Cerrar la ventana de datos del cliente
-                datosClienteFrame.dispose();
+    
+                // Cerrar el cuadro de diálogo de datos del cliente
+                datosClienteDialog.dispose();
             }
         });
     
-        datosClienteFrame.add(datosClientePanel, BorderLayout.CENTER);
-        datosClienteFrame.add(confirmarButton, BorderLayout.SOUTH);
+        datosClienteDialog.add(datosClientePanel, BorderLayout.CENTER);
+        datosClienteDialog.add(confirmarButton, BorderLayout.SOUTH);
     
-        datosClienteFrame.setVisible(true);
-    }
+        datosClienteDialog.setVisible(true);
+    }    
 
     // Método para obtener el nombre del cliente desde el mapa de clientes
     private String obtenerNombreCliente(String nitCi) {
@@ -577,7 +597,7 @@ public class FacturacionInterfaz extends JFrame {
 
         try {
             // Establecer la conexión con la base de datos
-            connection = DriverManager.getConnection("jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.");
+            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.");
 
             // Preparar la consulta SQL
             String sql = "SELECT id, nombre FROM clientes WHERE nit_ci = ?";
@@ -637,7 +657,7 @@ public class FacturacionInterfaz extends JFrame {
         }
     
         // Realizar la inserción de los datos del cliente en la tabla "clientes" en la base de datos MySQL
-        String url = "jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion";
+        String url = "jdbc:mysql://localhost:3306/SIS_Facturacion";
         String usuario = "Neoar2000";
         String contraseña = "Guitarhero3-*$.";
         String sql = "INSERT INTO clientes (nit_ci, nombre) VALUES (?, ?)";
@@ -716,7 +736,7 @@ public class FacturacionInterfaz extends JFrame {
     
             // Declaración de la instancia de SistemaDAO fuera del bloque try-catch
             SistemaDAO sistemaDAO = null;
-            Connection connection = DriverManager.getConnection("jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.");
+            Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.");
             try {
                 sistemaDAO = new SistemaDAO(connection); // Instanciamos el sistemaDAO
     
@@ -929,7 +949,7 @@ public class FacturacionInterfaz extends JFrame {
     
     private void registrarVentaEnBaseDeDatos(Venta venta, int idCliente, double granTotal, String metodoPagoSeleccionado){
         // Información de conexión a la base de datos
-        String url = "jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion";
+        String url = "jdbc:mysql://localhost:3306/SIS_Facturacion";
         String usuario = "Neoar2000";
         String contraseña = "Guitarhero3-*$.";
         
