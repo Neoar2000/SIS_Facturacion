@@ -52,6 +52,7 @@ public class FacturacionInterfaz extends JFrame {
     private String metodoPagoSeleccionado;
     private JTextField nitCiTextField;
     private JTextField nombreTextField;
+    private JDialog datosClienteDialog;
 
     // Lista de productos de ejemplo
     private List<Producto> productos = new ArrayList<>();
@@ -449,7 +450,7 @@ public class FacturacionInterfaz extends JFrame {
         }
     
         // Crear un cuadro de diálogo en lugar de una ventana
-        JDialog datosClienteDialog = new JDialog();
+        datosClienteDialog = new JDialog();
         datosClienteDialog.setTitle("Datos del Cliente");
         datosClienteDialog.setSize(400, 200); // Aumentar el tamaño del cuadro de diálogo
         datosClienteDialog.setModal(true); // Hacer que el cuadro de diálogo sea modal
@@ -796,6 +797,9 @@ public class FacturacionInterfaz extends JFrame {
     private void abrirMetodoPago(String nitCi, String nombre, double granTotal) {
         // Obtener los datos necesarios para el recibo
         List<Producto> productosVendidos = new ArrayList<>(); // Asegúrate de tener un método para obtener los productos vendidos
+
+        // Cerrar la ventana de datos del cliente
+        datosClienteDialog.dispose();
     
         // Mostrar la vista previa del recibo con los datos necesarios
         mostrarVistaPreviaRecibo(nitCi, nombre, null, granTotal, productosVendidos, 0, 0);
