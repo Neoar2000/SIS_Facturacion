@@ -53,7 +53,6 @@ public class FacturacionInterfaz extends JFrame {
     private JTextField nitCiTextField;
     private JTextField nombreTextField;
     private JDialog datosClienteDialog;
-    private double total = 0;
     private double granTotal = 0;
 
     // Lista de productos de ejemplo
@@ -246,14 +245,18 @@ public class FacturacionInterfaz extends JFrame {
             panel.add(cantidadField);
     
             // Mostrar el cuadro de diálogo con el panel personalizado
-            JDialog dialog = new JDialog();
-            dialog.setTitle("Modificar Cantidad");
-            dialog.setModal(true); // Hacer la ventana modal
+            JDialog dialog = new JDialog(this, "Modificar Cantidad", true); // Hacer la ventana modal y establecer el propietario
+            dialog.getContentPane().setLayout(new BorderLayout());
             dialog.getContentPane().add(panel, BorderLayout.CENTER);
-            
-            // Agregar un botón "Aceptar" al cuadro de diálogo
+    
+            // Botones
+            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
             JButton aceptarButton = new JButton("Aceptar");
+            JButton cancelButton = new JButton("Cancelar");
+    
             aceptarButton.setFont(new Font("Arial", Font.BOLD, 20));
+            cancelButton.setFont(new Font("Arial", Font.BOLD, 20));
+    
             aceptarButton.addActionListener(e -> {
                 try {
                     int nuevaCantidad = Integer.parseInt(cantidadField.getText());
@@ -264,7 +267,6 @@ public class FacturacionInterfaz extends JFrame {
                         // Actualizar el precio total después de cambiar la cantidad
                         double precioUnitario = (double) tableModel.getValueAt(selectedRow, 1);
                         double nuevoPrecioTotal = nuevaCantidad * precioUnitario;
-                        // Actualizar el precio total en la columna correspondiente del modelo de la tabla
                         tableModel.setValueAt(nuevoPrecioTotal, selectedRow, 3);
                         actualizarTotal();
                         dialog.dispose(); // Cerrar el diálogo después de aceptar
@@ -277,16 +279,21 @@ public class FacturacionInterfaz extends JFrame {
                     productosTable.clearSelection();
                 }
             });
-            dialog.getContentPane().add(aceptarButton, BorderLayout.SOUTH);
     
-            // Mostrar el diálogo
+            cancelButton.addActionListener(e -> dialog.dispose());
+    
+            buttonPanel.add(aceptarButton);
+            buttonPanel.add(cancelButton);
+    
+            dialog.getContentPane().add(buttonPanel, BorderLayout.SOUTH);
+    
             dialog.pack();
             dialog.setLocationRelativeTo(this); // Centrar el diálogo respecto a la ventana principal
             dialog.setVisible(true);
         } else {
             JOptionPane.showMessageDialog(this, "Debe seleccionar un producto para modificar su cantidad.", "Error", JOptionPane.ERROR_MESSAGE);
         }
-    }
+    }    
     
     private void eliminarProductoSeleccionado() {
         int selectedRow = productosTable.getSelectedRow();
@@ -325,7 +332,6 @@ public class FacturacionInterfaz extends JFrame {
             } catch (SQLException e) {
                 throw e;
             } catch (Exception e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         } catch (SQLException e) {
@@ -435,6 +441,7 @@ public class FacturacionInterfaz extends JFrame {
     }               
 
     private void actualizarTotal() {
+        double total = 0;
         for (int i = 0; i < tableModel.getRowCount(); i++) {
             double precioUnitario = (double) tableModel.getValueAt(i, 1);
             int cantidad = (int) tableModel.getValueAt(i, 2);
@@ -1012,7 +1019,6 @@ public class FacturacionInterfaz extends JFrame {
         model.setRowCount(0);
         // Reiniciar el contador del total y gran total
         granTotal = 0.0;
-        total = 0.0;
         // Reiniciar el total mostrado en el panel de total
         totalTextArea.setText("Bs. 0.00");
     }    
