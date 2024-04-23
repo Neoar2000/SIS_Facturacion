@@ -51,6 +51,7 @@ public class MetodoPago extends JDialog {
             listener.metodoPagoConfirmado(metodoPago);
         }
         setVisible(false); // Ocultar el diálogo en lugar de cerrarlo
+        dispose();
     }    
 
     public void setFacturacionInterfaz(FacturacionInterfaz facturacionInterfaz) {

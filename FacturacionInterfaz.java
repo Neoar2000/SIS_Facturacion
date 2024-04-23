@@ -61,6 +61,7 @@ public class FacturacionInterfaz extends JFrame {
     private List<Cliente> listaClientes;
 
     public FacturacionInterfaz() {
+        listaClientes = new ArrayList<>();
         setTitle("Facturacion NEO");
         setExtendedState(JFrame.MAXIMIZED_BOTH); // Establecer la ventana a pantalla completa
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -245,19 +246,8 @@ public class FacturacionInterfaz extends JFrame {
             panel.add(cantidadField);
     
             // Mostrar el cuadro de diálogo con el panel personalizado
-            JDialog dialog = new JDialog(this, "Modificar Cantidad", true); // Hacer la ventana modal y establecer el propietario
-            dialog.getContentPane().setLayout(new BorderLayout());
-            dialog.getContentPane().add(panel, BorderLayout.CENTER);
-    
-            // Botones
-            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-            JButton aceptarButton = new JButton("Aceptar");
-            JButton cancelButton = new JButton("Cancelar");
-    
-            aceptarButton.setFont(new Font("Arial", Font.BOLD, 20));
-            cancelButton.setFont(new Font("Arial", Font.BOLD, 20));
-    
-            aceptarButton.addActionListener(e -> {
+            int option = JOptionPane.showConfirmDialog(this, panel, "Modificar Cantidad", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+            if (option == JOptionPane.OK_OPTION) {
                 try {
                     int nuevaCantidad = Integer.parseInt(cantidadField.getText());
                     if (nuevaCantidad > 0) {
@@ -269,31 +259,19 @@ public class FacturacionInterfaz extends JFrame {
                         double nuevoPrecioTotal = nuevaCantidad * precioUnitario;
                         tableModel.setValueAt(nuevoPrecioTotal, selectedRow, 3);
                         actualizarTotal();
-                        dialog.dispose(); // Cerrar el diálogo después de aceptar
                     } else {
-                        JOptionPane.showMessageDialog(dialog, "La cantidad debe ser un número positivo.", "Error", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(this, "La cantidad debe ser un número positivo.", "Error", JOptionPane.ERROR_MESSAGE);
                         productosTable.clearSelection();
                     }
                 } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(dialog, "Ingrese un número válido para la cantidad.", "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Ingrese un número válido para la cantidad.", "Error", JOptionPane.ERROR_MESSAGE);
                     productosTable.clearSelection();
                 }
-            });
-    
-            cancelButton.addActionListener(e -> dialog.dispose());
-    
-            buttonPanel.add(aceptarButton);
-            buttonPanel.add(cancelButton);
-    
-            dialog.getContentPane().add(buttonPanel, BorderLayout.SOUTH);
-    
-            dialog.pack();
-            dialog.setLocationRelativeTo(this); // Centrar el diálogo respecto a la ventana principal
-            dialog.setVisible(true);
+            }
         } else {
             JOptionPane.showMessageDialog(this, "Debe seleccionar un producto para modificar su cantidad.", "Error", JOptionPane.ERROR_MESSAGE);
         }
-    }    
+    }        
     
     private void eliminarProductoSeleccionado() {
         int selectedRow = productosTable.getSelectedRow();
@@ -537,7 +515,6 @@ public class FacturacionInterfaz extends JFrame {
             }
         });
 
-        // Autocompletar el nombre si ya ha sido registrado previamente
         nitCiTextField.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent e) {
@@ -549,7 +526,7 @@ public class FacturacionInterfaz extends JFrame {
                     nombreTextField.setText(nombreCliente);
                 }
             }
-        });
+        });        
     
         gbc.gridx = 0;
         gbc.gridy = 1;
@@ -591,73 +568,46 @@ public class FacturacionInterfaz extends JFrame {
         datosClienteDialog.setVisible(true);
     }    
 
-    // Método para obtener el nombre del cliente desde el mapa de clientes
     private String obtenerNombreCliente(String nitCi) {
+        // Siempre verificar primero en el mapa
         if (mapaClientes.containsKey(nitCi)) {
-            // Si el nombre del cliente ya está en el mapa, devuelve el ID del cliente y obtén su nombre desde el mapa de ID a nombre
             int idCliente = mapaClientes.get(nitCi);
-            return obtenerNombreClienteDesdeMapa(idCliente);
+            String nombreCliente = obtenerNombreClienteDesdeMapa(idCliente);
+            if (nombreCliente != null) {
+                return nombreCliente;
+            }
         }
-
-        // Si no está en el mapa, realizar la consulta en la base de datos
+    
+        // Si no está en el mapa o no se encontró en la función anterior, consultar la base de datos
         String nombreCliente = null;
-        Connection connection = null;
-        PreparedStatement statement = null;
-        ResultSet resultSet = null;
-
-        try {
-            // Establecer la conexión con la base de datos
-            connection = DriverManager.getConnection("jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.");
-
-            // Preparar la consulta SQL
-            String sql = "SELECT id, nombre FROM clientes WHERE nit_ci = ?";
-            statement = connection.prepareStatement(sql);
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.");
+             PreparedStatement statement = connection.prepareStatement("SELECT id, nombre FROM clientes WHERE nit_ci = ?")) {
             statement.setString(1, nitCi);
-
-            // Ejecutar la consulta
-            resultSet = statement.executeQuery();
-
-            // Verificar si se encontró un resultado
-            if (resultSet.next()) {
-                // Obtener el ID del cliente
-                int idCliente = resultSet.getInt("id");
-                // Obtener el nombre del cliente
-                nombreCliente = resultSet.getString("nombre");
-                // Guardar la asociación entre el NIT/CI y el ID del cliente en el mapa
-                mapaClientes.put(nitCi, idCliente);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    int idCliente = resultSet.getInt("id");
+                    nombreCliente = resultSet.getString("nombre");
+                    // Actualizar el mapa si se encuentra nuevo o diferente
+                    mapaClientes.put(nitCi, idCliente);
+                }
             }
         } catch (SQLException e) {
-            e.printStackTrace(); // Manejar la excepción apropiadamente en tu aplicación
-        } finally {
-            // Cerrar los recursos
-            try {
-                if (resultSet != null) {
-                    resultSet.close();
-                }
-                if (statement != null) {
-                    statement.close();
-                }
-                if (connection != null) {
-                    connection.close();
-                }
-            } catch (SQLException e) {
-                e.printStackTrace(); // Manejar la excepción apropiadamente en tu aplicación
-            }
+            e.printStackTrace();
         }
-
+    
         return nombreCliente;
-    }
+    }    
     
     private String obtenerNombreClienteDesdeMapa(int idCliente) {
-        // Itera sobre la lista de clientes y busca el cliente con el ID correspondiente
-        for (Cliente cliente : listaClientes) {
-            if (cliente.getId() == idCliente) {
-                return cliente.getNombre();
+        if (listaClientes != null && !listaClientes.isEmpty()) {
+            for (Cliente cliente : listaClientes) {
+                if (cliente.getId() == idCliente) {
+                    return cliente.getNombre();
+                }
             }
         }
-        // Devuelve null si no se encuentra el cliente con el ID dado
-        return null;
-    }        
+        return null; // Devuelve null si la lista es nula o está vacía
+    }               
 
     private int registrarCliente(String nitCi, String nombre) {
         // Verificar si los campos están vacíos y asignarles los valores predeterminados si es así
@@ -713,7 +663,7 @@ public class FacturacionInterfaz extends JFrame {
         
         // Continuar con el registro de la compra utilizando el ID del cliente
         try {
-            // Obtener la fecha y la hora actual
+            /*// Obtener la fecha y la hora actual
             LocalDateTime fechaHoraActual = LocalDateTime.now();
     
             // Formatear la fecha y la hora en el formato deseado
@@ -739,7 +689,7 @@ public class FacturacionInterfaz extends JFrame {
             sb.append("Productos Comprados:\n");
     
             // Encabezados de las columnas
-            sb.append(String.format("%-20s %-20s %-10s %-10s\n", "Producto", "Precio Unitario", "Cantidad", "Precio Total"));
+            sb.append(String.format("%-20s %-20s %-10s %-10s\n", "Producto", "Precio Unitario", "Cantidad", "Precio Total"));*/
     
             List<Producto> productosVendidos = new ArrayList<>();
     
@@ -766,8 +716,8 @@ public class FacturacionInterfaz extends JFrame {
                     // Sumar el precio total al gran total
                     granTotal += precioTotal;
     
-                    // Datos de cada producto, alineados en las columnas correspondientes
-                    sb.append(String.format("%-20s Bs. %-19.2f %-10d Bs. %.2f\n", nombreProducto, precioUnitario, cantidad, precioTotal));
+                    /*// Datos de cada producto, alineados en las columnas correspondientes
+                    sb.append(String.format("%-20s Bs. %-19.2f %-10d Bs. %.2f\n", nombreProducto, precioUnitario, cantidad, precioTotal));*/
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
@@ -782,12 +732,12 @@ public class FacturacionInterfaz extends JFrame {
                 }
             }
     
-            // Mostrar el gran total
+            /*// Mostrar el gran total
             sb.append("----------------------------------------------------------------------------------------------\n");
             sb.append(String.format("%-5s Bs. %.2f\n", "Monto Total:", granTotal));
 
             // Mostrar el método de pago seleccionado
-            sb.append(String.format("%-5s: %s\n", "Metodo de Pago", metodoPago));
+            sb.append(String.format("%-5s: %s\n", "Metodo de Pago", metodoPago));*/
 
             abrirMetodoPago(nitCi, nombre, granTotal);
 
@@ -817,6 +767,13 @@ public class FacturacionInterfaz extends JFrame {
     
         // Abrir la ventana de selección de método de pago
         MetodoPago metodoPagoVentana = new MetodoPago(this, this); // Pasar la instancia actual de FacturacionInterfaz y el JFrame
+        metodoPagoVentana.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                obtenerNombreCliente(nitCi);
+                reiniciarGranTotal();
+            }
+        });
         metodoPagoVentana.setMetodoPagoListener(new MetodoPagoListener() {
             @Override
             public void metodoPagoConfirmado(String metodoPago) {
@@ -1021,6 +978,11 @@ public class FacturacionInterfaz extends JFrame {
         granTotal = 0.0;
         // Reiniciar el total mostrado en el panel de total
         totalTextArea.setText("Bs. 0.00");
+    }
+
+    private void reiniciarGranTotal() {
+        // Suponiendo que granTotal es una variable de instancia
+        granTotal = 0;
     }    
 
     public static void main(String[] args) {
