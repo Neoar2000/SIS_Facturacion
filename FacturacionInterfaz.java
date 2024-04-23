@@ -812,7 +812,7 @@ public class FacturacionInterfaz extends JFrame {
                                 JOptionPane.showMessageDialog(null, "Cantidad inválida. Intente nuevamente.");
                             }
                         } else {
-                            // Si se cancela el diálogo, salir del bucle
+                            reiniciarGranTotal();
                             return;
                         }
                     } while (!cantidadValida);
