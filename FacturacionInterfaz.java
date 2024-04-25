@@ -672,10 +672,7 @@ public class FacturacionInterfaz extends JFrame {
     
             int idCliente = registrarCliente(nitCi, nombre);  // Asumiendo que esta función también maneja correctamente las transacciones
             if (idCliente != -1) {
-                int idVenta = registrarVentaEnBaseDeDatos(new Venta(nitCi, nombre, LocalDateTime.now(), productosVendidos, granTotal), idCliente, granTotal, metodoPago);
                 connection.commit();  // Solo hacer commit si todo ha ido bien
-                
-                mostrarVistaPreviaRecibo(nitCi, nombre, metodoPago, granTotal, productosVendidos, 0, 0, idVenta, this);
                 abrirMetodoPago(nitCi, nombre, granTotal, productosVendidos);
             } else {
                 connection.rollback();
@@ -692,6 +689,7 @@ public class FacturacionInterfaz extends JFrame {
     }    
 
     private void abrirMetodoPago(String nitCi, String nombre, double granTotal, List<Producto> productosVendidos) {
+        datosClienteDialog.dispose();
         MetodoPago metodoPagoVentana = new MetodoPago(this, this);
         metodoPagoVentana.addWindowListener(new WindowAdapter() {
             @Override
@@ -708,8 +706,9 @@ public class FacturacionInterfaz extends JFrame {
                     JOptionPane.showMessageDialog(null, "No se pudo registrar el cliente.", "Error", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
-    
-                Venta venta = new Venta(nitCi, nombre, LocalDateTime.now(), productosVendidos, granTotal);
+        
+                LocalDateTime fechaHoraActual = LocalDateTime.now();
+                Venta venta = new Venta(nitCi, nombre, fechaHoraActual, productosVendidos, granTotal);
                 int idVenta;
                 try {
                     idVenta = registrarVentaEnBaseDeDatos(venta, idCliente, granTotal, metodoPago);
@@ -717,44 +716,46 @@ public class FacturacionInterfaz extends JFrame {
                     JOptionPane.showMessageDialog(null, "Error al registrar la venta en la base de datos: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
-    
+        
                 if (metodoPago.equals("Efectivo")) {
-                    double cantidadPagada = solicitarCantidadPagada(granTotal);
-                    if (cantidadPagada < 0) {
-                        JOptionPane.showMessageDialog(null, "Transacción cancelada o entrada inválida.", "Error", JOptionPane.ERROR_MESSAGE);
-                        return;
+                    double cantidadPagada = 0;
+                    double cambio = 0;
+                    boolean cantidadValida = false;
+                    do {
+                        JTextField cantidadPagadaField = new JTextField();
+                        cantidadPagadaField.setFont(new Font("Arial", Font.PLAIN, 20));
+                        Object[] message = {"Ingrese la cantidad pagada:", cantidadPagadaField};
+                        int option = JOptionPane.showConfirmDialog(null, message, "Pago en Efectivo", JOptionPane.OK_CANCEL_OPTION);
+                        if (option == JOptionPane.OK_OPTION) {
+                            try {
+                                cantidadPagada = Double.parseDouble(cantidadPagadaField.getText());
+                                if (cantidadPagada < granTotal) {
+                                    JOptionPane.showMessageDialog(null, "La cantidad debe ser igual o mayor al total.");
+                                } else {
+                                    cantidadValida = true;
+                                    cambio = cantidadPagada - granTotal;
+                                }
+                            } catch (NumberFormatException e) {
+                                JOptionPane.showMessageDialog(null, "Cantidad inválida. Intente nuevamente.");
+                            }
+                        } else {
+                            reiniciarGranTotal();
+                            return;
+                        }
+                    } while (!cantidadValida);
+        
+                    if (cambio > 0) {
+                        JOptionPane.showMessageDialog(null, String.format("Cambio a entregar: Bs. %.2f", cambio));
                     }
-                    double cambio = cantidadPagada - granTotal;
                     mostrarVistaPreviaRecibo(nitCi, nombre, metodoPago, granTotal, productosVendidos, cantidadPagada, cambio, idVenta, FacturacionInterfaz.this);
                 } else {
                     mostrarVistaPreviaRecibo(nitCi, nombre, metodoPago, granTotal, productosVendidos, 0, 0, idVenta, FacturacionInterfaz.this);
                 }
                 System.out.println("Método de pago seleccionado: " + metodoPago);
             }
-        });
+        });        
         metodoPagoVentana.setVisible(true);
-    }
-    
-    
-    private double solicitarCantidadPagada(double granTotal) {
-        JTextField cantidadPagadaField = new JTextField();
-        cantidadPagadaField.setFont(new Font("Arial", Font.PLAIN, 20));
-        Object[] message = {"Ingrese la cantidad pagada:", cantidadPagadaField};
-        int option = JOptionPane.showConfirmDialog(null, message, "Pago en Efectivo", JOptionPane.OK_CANCEL_OPTION);
-        if (option == JOptionPane.OK_OPTION) {
-            try {
-                double cantidadPagada = Double.parseDouble(cantidadPagadaField.getText());
-                if (cantidadPagada >= granTotal) {
-                    return cantidadPagada;
-                } else {
-                    JOptionPane.showMessageDialog(null, "La cantidad debe ser igual o mayor al total.");
-                }
-            } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(null, "Cantidad inválida. Intente nuevamente.");
-            }
-        }
-        return -1; // Devuelve -1 si el usuario cancela o hay un error de formato
-    }                          
+    }                       
 
     public void metodoPagoSeleccionado(String metodoPago) {
         try {
