@@ -869,13 +869,23 @@ public class FacturacionInterfaz extends JFrame {
     
             // Construir el recibo completo aquí usando los datos proporcionados
             StringBuilder sb = new StringBuilder();
-            sb.append("\t                  EMPRESA S.A.\n");
-            sb.append("----------------------------------------------------------------------------------------------\n");
-            sb.append(String.format("%-5s: %s\n", "Fecha Emision", fechaHoraFormateada));
-            sb.append(String.format("%-5s: %s\n", "NIT/CI", nitCiMostrar));
-            sb.append(String.format("%5s: %s\n", "Nombre", nombreMostrar));
-            sb.append("----------------------------------------------------------------------------------------------\n");
-            sb.append(String.format("%-20s %-20s %-10s %-10s\n", "Producto", "Precio Unitario", "Cantidad", "Precio Total"));
+            sb.append("                                        FACTURA\n");
+            sb.append("                   CON DERECHO A CREDITO FISCAL\n");
+            sb.append("                                    EMPRESA S.A.\n");
+            sb.append("                                    CASA MATRIZ\n");
+            sb.append("                          Calle Antonio Gonzales #740\n");
+            sb.append("                                       71525880\n");
+            sb.append("                                  LA PAZ - BOLIVIA\n");
+            sb.append("-----------------------------------------------------------------------------------\n");
+            sb.append(String.format("%-5s: %s\n", "                                NIT", "1234567890"));
+            sb.append(String.format("%5s: %s\n", "                     Cod. Autorizacion", "1234567890"));
+            sb.append(String.format("%5s: %s\n", "                                 N° Factura", "0"));
+            sb.append("-----------------------------------------------------------------------------------\n");
+            sb.append(String.format("%-5s: %s\n", "                         Fecha", fechaHoraFormateada));
+            sb.append(String.format("%-5s: %s\n", "                                 NIT/CI", nitCiMostrar));
+            sb.append(String.format("%5s: %s\n", "                                 Nombre", nombreMostrar));
+            sb.append("-----------------------------------------------------------------------------------\n");
+            sb.append(String.format("%-20s %-20s %-10s %-10s\n", "Producto", "P. Unitario", "Cantidad", "Total"));
     
             // Calcula el gran total correctamente sin sumarlo dentro del bucle
             double granTotalCalculado = granTotal;
@@ -893,7 +903,7 @@ public class FacturacionInterfaz extends JFrame {
                 // Sumar el precio total al gran total calculado
                 granTotalCalculado += precioTotal;
             }
-            sb.append("----------------------------------------------------------------------------------------------\n\n");
+            sb.append("-----------------------------------------------------------------------------------\n\n");
     
             // Verifica si hay una discrepancia entre el gran total calculado y el gran total pasado como argumento
             if (granTotalCalculado != granTotal) {
@@ -908,6 +918,15 @@ public class FacturacionInterfaz extends JFrame {
                 // Mostrar la cantidad pagada y el cambio si el método de pago es efectivo
                 sb.append(String.format("%-5s Bs. %.2f\n", "Efectivo pagado:", cantidadPagada));
                 sb.append(String.format("%-5s Bs. %.2f\n", "Cambio:", cambio));
+                sb.append("\nESTA FACTURA CONTRIBUYE AL DESARROLLO \nDEL PAÍS. EL USO ILÍCITO SERÁ SANCIONADO\nPENALMENTE DE ACUERDO A LEY\n");
+                sb.append("\nLey N° 453: Los servicios deben suministrarse en \ncondiciones de inocuidad, calidad y seguridad.\n");
+                sb.append("\nEste documento es la representacion grafica de un\ndocumento fiscal digtal emitido en una modalidad\nde facturacion en linea\n\n");
+                sb.append("                             Facturacion NEO v1.0");
+            } else {
+                sb.append("ESTA FACTURA CONTRIBUYE AL DESARROLLO \nDEL PAÍS. EL USO ILÍCITO SERÁ SANCIONADO\nPENALMENTE DE ACUERDO A LEY\n");
+                sb.append("\nLey N° 453: Los servicios deben suministrarse en \ncondiciones de inocuidad, calidad y seguridad.\n");
+                sb.append("\nEste documento es la representacion grafica de un\ndocumento fiscal digtal emitido en una modalidad\nde facturacion en linea\n\n");
+                sb.append("                             Facturacion NEO v1.0");
             }
     
             VistaPreviaRecibo vistaPreviaRecibo = new VistaPreviaRecibo(this, sb.toString(), 0.0, facturacionInterfaz);
