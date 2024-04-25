@@ -654,43 +654,8 @@ public class FacturacionInterfaz extends JFrame {
 
     // Método para registrar una compra en la base de datos
     private void registrarCompra(String nitCi, String nombre, String metodoPago) throws SQLException {
-        /*// Registrar el cliente y obtener su ID
-        int idCliente = registrarCliente(nitCi, nombre);
-        if (idCliente == -1) {
-            System.out.println("No se pudo registrar la compra porque no se pudo registrar el cliente.");
-            return;
-        }*/
-        
         // Continuar con el registro de la compra utilizando el ID del cliente
         try {
-            /*// Obtener la fecha y la hora actual
-            LocalDateTime fechaHoraActual = LocalDateTime.now();
-    
-            // Formatear la fecha y la hora en el formato deseado
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-            String fechaHoraFormateada = fechaHoraActual.format(formatter);
-    
-            // Verificar si el NIT/CI y el nombre están vacíos
-            if (nitCi.isEmpty()) {
-                nitCi = "0"; // Asignar "0" si el NIT/CI está vacío
-            }
-            if (nombre.isEmpty()) {
-                nombre = "S/N"; // Asignar "S/N" si el nombre está vacío
-            }
-    
-            // Imprimir los datos del cliente y los productos comprados en el JTextArea del recibo
-            StringBuilder sb = new StringBuilder();
-            sb.append("\t                  EMPRESA S.A.\n");
-            sb.append("----------------------------------------------------------------------------------------------\n");
-            sb.append(String.format("%-5s: %s\n", "Fecha Emision", fechaHoraFormateada));
-            sb.append(String.format("%-5s: %s\n", "NIT/CI", nitCi));
-            sb.append(String.format("%5s: %s\n", "Nombre", nombre));
-            sb.append("----------------------------------------------------------------------------------------------\n");
-            sb.append("Productos Comprados:\n");
-    
-            // Encabezados de las columnas
-            sb.append(String.format("%-20s %-20s %-10s %-10s\n", "Producto", "Precio Unitario", "Cantidad", "Precio Total"));*/
-    
             List<Producto> productosVendidos = new ArrayList<>();
     
             // Declaración de la instancia de SistemaDAO fuera del bloque try-catch
@@ -715,9 +680,6 @@ public class FacturacionInterfaz extends JFrame {
     
                     // Sumar el precio total al gran total
                     granTotal += precioTotal;
-    
-                    /*// Datos de cada producto, alineados en las columnas correspondientes
-                    sb.append(String.format("%-20s Bs. %-19.2f %-10d Bs. %.2f\n", nombreProducto, precioUnitario, cantidad, precioTotal));*/
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
@@ -732,18 +694,9 @@ public class FacturacionInterfaz extends JFrame {
                 }
             }
     
-            /*// Mostrar el gran total
-            sb.append("----------------------------------------------------------------------------------------------\n");
-            sb.append(String.format("%-5s Bs. %.2f\n", "Monto Total:", granTotal));
-
-            // Mostrar el método de pago seleccionado
-            sb.append(String.format("%-5s: %s\n", "Metodo de Pago", metodoPago));*/
-
             abrirMetodoPago(nitCi, nombre, granTotal);
 
             mostrarVistaPreviaRecibo(nitCi, nombre, metodoPago, granTotal, productosVendidos, 0, 0, this);
-    
-            //registrarVentaEnBaseDeDatos(venta, idCliente, granTotal, metodoPagoSeleccionado);
 
         } catch (SQLException ex) {
             ex.printStackTrace();
@@ -876,15 +829,15 @@ public class FacturacionInterfaz extends JFrame {
             sb.append("                          Calle Antonio Gonzales #740\n");
             sb.append("                                       71525880\n");
             sb.append("                                  LA PAZ - BOLIVIA\n");
-            sb.append("-----------------------------------------------------------------------------------\n");
+            sb.append("-------------------------------------------------------------------------------\n");
             sb.append(String.format("%-5s: %s\n", "                                NIT", "1234567890"));
             sb.append(String.format("%5s: %s\n", "                     Cod. Autorizacion", "1234567890"));
             sb.append(String.format("%5s: %s\n", "                                 N° Factura", "0"));
-            sb.append("-----------------------------------------------------------------------------------\n");
+            sb.append("-------------------------------------------------------------------------------\n");
             sb.append(String.format("%-5s: %s\n", "                         Fecha", fechaHoraFormateada));
             sb.append(String.format("%-5s: %s\n", "                                 NIT/CI", nitCiMostrar));
             sb.append(String.format("%5s: %s\n", "                                 Nombre", nombreMostrar));
-            sb.append("-----------------------------------------------------------------------------------\n");
+            sb.append("-------------------------------------------------------------------------------\n");
             sb.append(String.format("%-20s %-20s %-10s %-10s\n", "Producto", "P. Unitario", "Cantidad", "Total"));
     
             // Calcula el gran total correctamente sin sumarlo dentro del bucle
@@ -903,7 +856,7 @@ public class FacturacionInterfaz extends JFrame {
                 // Sumar el precio total al gran total calculado
                 granTotalCalculado += precioTotal;
             }
-            sb.append("-----------------------------------------------------------------------------------\n\n");
+            sb.append("-------------------------------------------------------------------------------\n\n");
     
             // Verifica si hay una discrepancia entre el gran total calculado y el gran total pasado como argumento
             if (granTotalCalculado != granTotal) {

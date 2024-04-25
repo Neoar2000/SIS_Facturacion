@@ -10,7 +10,7 @@ public class VistaPreviaRecibo extends JDialog {  // Cambiado de JFrame a JDialo
     public VistaPreviaRecibo(JFrame owner, String recibo, double dummy, FacturacionInterfaz facturacionInterfaz) {
         super(owner, "Factura de Venta", true);  // Se agrega el constructor de JDialog con modalidad
         this.facturacionInterfaz = facturacionInterfaz;
-        setSize(540, 500); // Aumentar el tamaño de la ventana
+        setSize(450, 800); // Aumentar el tamaño de la ventana
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
 
