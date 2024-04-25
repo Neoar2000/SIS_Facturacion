@@ -6,8 +6,7 @@ import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+
 import javax.swing.event.ChangeEvent;
 import java.util.ArrayList;
 import java.util.List;
@@ -652,74 +651,48 @@ public class FacturacionInterfaz extends JFrame {
         return idCliente;
     }   
 
-    // Método para registrar una compra en la base de datos
     private void registrarCompra(String nitCi, String nombre, String metodoPago) throws SQLException {
-        // Continuar con el registro de la compra utilizando el ID del cliente
+        List<Producto> productosVendidos = new ArrayList<>();
+        
+        Connection connection = DriverManager.getConnection("jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.");
+        connection.setAutoCommit(false);  // Importante para manejar la transacción manualmente
+        SistemaDAO sistemaDAO = new SistemaDAO(connection);
+    
         try {
-            List<Producto> productosVendidos = new ArrayList<>();
-    
-            // Declaración de la instancia de SistemaDAO fuera del bloque try-catch
-            SistemaDAO sistemaDAO = null;
-            Connection connection = DriverManager.getConnection("jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.");
-            try {
-                sistemaDAO = new SistemaDAO(connection); // Instanciamos el sistemaDAO
-    
-                // Resto del código dentro del bloque try-catch
-                for (int i = 0; i < tableModel.getRowCount(); i++) {
-                    String nombreProducto = (String) tableModel.getValueAt(i, 0);
-                    double precioUnitario = (double) tableModel.getValueAt(i, 1);
-                    int cantidad = (int) tableModel.getValueAt(i, 2);
-                    double precioTotal = precioUnitario * cantidad; // Calcular el precio total del producto
-    
-                    // Obtener el ID del producto desde la base de datos usando el sistemaDAO
-                    int idProducto = sistemaDAO.obtenerIdProducto(nombreProducto);
-    
-                    // Crear instancia de Producto con nombre, precio y ID
-                    Producto producto = new Producto(idProducto, nombreProducto, precioUnitario);
-                    productosVendidos.add(producto); // Agregar producto a la lista de productos vendidos
-    
-                    // Sumar el precio total al gran total
-                    granTotal += precioTotal;
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-                JOptionPane.showMessageDialog(this, "Error al cargar productos desde la base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
-                throw e; // Lanzar la excepción hacia arriba para que sea manejada por el llamador
-            } finally {
-                if (sistemaDAO != null) {
-                    sistemaDAO.close(); // Cerrar la instancia de SistemaDAO
-                }
-                if (connection != null) {
-                    connection.close(); // Cerrar la conexión a la base de datos
-                }
+            for (int i = 0; i < tableModel.getRowCount(); i++) {
+                String nombreProducto = (String) tableModel.getValueAt(i, 0);
+                double precioUnitario = (double) tableModel.getValueAt(i, 1);
+                int cantidad = (int) tableModel.getValueAt(i, 2);
+                double precioTotal = precioUnitario * cantidad;
+                int idProducto = sistemaDAO.obtenerIdProducto(nombreProducto);
+                Producto producto = new Producto(idProducto, nombreProducto, precioUnitario);
+                productosVendidos.add(producto);
+                granTotal += precioTotal;
             }
     
-            abrirMetodoPago(nitCi, nombre, granTotal);
-
-            mostrarVistaPreviaRecibo(nitCi, nombre, metodoPago, granTotal, productosVendidos, 0, 0, this);
-
+            int idCliente = registrarCliente(nitCi, nombre);  // Asumiendo que esta función también maneja correctamente las transacciones
+            if (idCliente != -1) {
+                int idVenta = registrarVentaEnBaseDeDatos(new Venta(nitCi, nombre, LocalDateTime.now(), productosVendidos, granTotal), idCliente, granTotal, metodoPago);
+                connection.commit();  // Solo hacer commit si todo ha ido bien
+                
+                mostrarVistaPreviaRecibo(nitCi, nombre, metodoPago, granTotal, productosVendidos, 0, 0, idVenta, this);
+                abrirMetodoPago(nitCi, nombre, granTotal, productosVendidos);
+            } else {
+                connection.rollback();
+                JOptionPane.showMessageDialog(this, "No se pudo registrar el cliente.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
         } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error al registrar venta en la base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
-            throw ex; // Lanzar la excepción hacia arriba para que sea manejada por el llamador
+            connection.rollback();
+            JOptionPane.showMessageDialog(this, "Error al procesar la compra: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            throw ex;
+        } finally {
+            sistemaDAO.close();  // Asegúrate de cerrar el DAO y la conexión
+            connection.close();
         }
-    }
+    }    
 
-    private void abrirMetodoPago(String nitCi, String nombre, double granTotal) {
-        // Obtener los datos necesarios para el recibo
-        List<Producto> productosVendidos = new ArrayList<>(); // Asegúrate de tener un método para obtener los productos vendidos
-    
-        // Cerrar la ventana de datos del cliente
-        datosClienteDialog.dispose();
-    
-        // Almacenar una referencia a FacturacionInterfaz
-        FacturacionInterfaz facturacionInterfaz = this;
-    
-        // Mostrar la vista previa del recibo con los datos necesarios
-        mostrarVistaPreviaRecibo(nitCi, nombre, null, granTotal, productosVendidos, 0, 0, facturacionInterfaz);
-    
-        // Abrir la ventana de selección de método de pago
-        MetodoPago metodoPagoVentana = new MetodoPago(this, this); // Pasar la instancia actual de FacturacionInterfaz y el JFrame
+    private void abrirMetodoPago(String nitCi, String nombre, double granTotal, List<Producto> productosVendidos) {
+        MetodoPago metodoPagoVentana = new MetodoPago(this, this);
         metodoPagoVentana.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
@@ -730,67 +703,58 @@ public class FacturacionInterfaz extends JFrame {
         metodoPagoVentana.setMetodoPagoListener(new MetodoPagoListener() {
             @Override
             public void metodoPagoConfirmado(String metodoPago) {
-                // Registrar el cliente y obtener su ID
                 int idCliente = registrarCliente(nitCi, nombre);
                 if (idCliente == -1) {
-                    System.out.println("No se pudo registrar la compra porque no se pudo registrar el cliente.");
+                    JOptionPane.showMessageDialog(null, "No se pudo registrar el cliente.", "Error", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
-                // Obtener la fecha y la hora actual
-                LocalDateTime fechaHoraActual = LocalDateTime.now();
     
-                // Si el método de pago es efectivo, solicitar la cantidad pagada
-                if (metodoPago.equals("Efectivo")) {
-                    double cantidadPagada = 0;
-                    double cambio = 0;
-                    boolean cantidadValida = false;
-                    do {
-                        JTextField cantidadPagadaField = new JTextField();
-                        cantidadPagadaField.setFont(new Font("Arial", Font.PLAIN, 20)); // Establecer el tamaño de la fuente
-                        Object[] message = {
-                            "Ingrese la cantidad pagada:", cantidadPagadaField
-                        };
-                        int option = JOptionPane.showConfirmDialog(null, message, "Pago en Efectivo", JOptionPane.OK_CANCEL_OPTION);
-                        if (option == JOptionPane.OK_OPTION) {
-                            try {
-                                cantidadPagada = Double.parseDouble(cantidadPagadaField.getText());
-                                if (cantidadPagada < granTotal) {
-                                    // Si la cantidad pagada es menor que el gran total, mostrar un mensaje de error
-                                    JOptionPane.showMessageDialog(null, "La cantidad debe ser igual o mayor al total.");
-                                } else {
-                                    cantidadValida = true;
-                                    cambio = cantidadPagada - granTotal;
-                                }
-                            } catch (NumberFormatException e) {
-                                JOptionPane.showMessageDialog(null, "Cantidad inválida. Intente nuevamente.");
-                            }
-                        } else {
-                            reiniciarGranTotal();
-                            return;
-                        }
-                    } while (!cantidadValida);
-    
-                    // Si hay cambio, mostrarlo en un mensaje
-                    if (cambio > 0) {
-                        JOptionPane.showMessageDialog(null, String.format("Cambio a entregar: Bs. %.2f", cambio));
-                    }
-                    // Mostrar la vista previa del recibo con la cantidad pagada y el cambio
-                    mostrarVistaPreviaRecibo(nitCi, nombre, metodoPago, granTotal, productosVendidos, cantidadPagada, cambio, facturacionInterfaz);
-                    // Crear una instancia de la venta con los datos necesarios
-                    Venta venta = new Venta(nitCi, nombre, fechaHoraActual, productosVendidos, granTotal);
-                    System.out.println("Método de pago seleccionado: " + metodoPago); // Aquí agregamos el código de impresión
-                    registrarVentaEnBaseDeDatos(venta, idCliente, granTotal, metodoPago); // Registrar la venta en la base de datos
-                } else {
-                    // Si el método de pago no es efectivo, mostrar la vista previa del recibo sin solicitar la cantidad pagada
-                    mostrarVistaPreviaRecibo(nitCi, nombre, metodoPago, granTotal, productosVendidos, 0, 0, facturacionInterfaz);
-                    Venta venta = new Venta(nitCi, nombre, fechaHoraActual, productosVendidos, granTotal);
-                    System.out.println("Método de pago seleccionado: " + metodoPago); // Aquí agregamos el código de impresión
-                    registrarVentaEnBaseDeDatos(venta, idCliente, granTotal, metodoPago); // Registrar la venta en la base de datos
+                Venta venta = new Venta(nitCi, nombre, LocalDateTime.now(), productosVendidos, granTotal);
+                int idVenta;
+                try {
+                    idVenta = registrarVentaEnBaseDeDatos(venta, idCliente, granTotal, metodoPago);
+                } catch (SQLException e) {
+                    JOptionPane.showMessageDialog(null, "Error al registrar la venta en la base de datos: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
                 }
+    
+                if (metodoPago.equals("Efectivo")) {
+                    double cantidadPagada = solicitarCantidadPagada(granTotal);
+                    if (cantidadPagada < 0) {
+                        JOptionPane.showMessageDialog(null, "Transacción cancelada o entrada inválida.", "Error", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    double cambio = cantidadPagada - granTotal;
+                    mostrarVistaPreviaRecibo(nitCi, nombre, metodoPago, granTotal, productosVendidos, cantidadPagada, cambio, idVenta, FacturacionInterfaz.this);
+                } else {
+                    mostrarVistaPreviaRecibo(nitCi, nombre, metodoPago, granTotal, productosVendidos, 0, 0, idVenta, FacturacionInterfaz.this);
+                }
+                System.out.println("Método de pago seleccionado: " + metodoPago);
             }
         });
         metodoPagoVentana.setVisible(true);
-    }                      
+    }
+    
+    
+    private double solicitarCantidadPagada(double granTotal) {
+        JTextField cantidadPagadaField = new JTextField();
+        cantidadPagadaField.setFont(new Font("Arial", Font.PLAIN, 20));
+        Object[] message = {"Ingrese la cantidad pagada:", cantidadPagadaField};
+        int option = JOptionPane.showConfirmDialog(null, message, "Pago en Efectivo", JOptionPane.OK_CANCEL_OPTION);
+        if (option == JOptionPane.OK_OPTION) {
+            try {
+                double cantidadPagada = Double.parseDouble(cantidadPagadaField.getText());
+                if (cantidadPagada >= granTotal) {
+                    return cantidadPagada;
+                } else {
+                    JOptionPane.showMessageDialog(null, "La cantidad debe ser igual o mayor al total.");
+                }
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(null, "Cantidad inválida. Intente nuevamente.");
+            }
+        }
+        return -1; // Devuelve -1 si el usuario cancela o hay un error de formato
+    }                          
 
     public void metodoPagoSeleccionado(String metodoPago) {
         try {
@@ -801,7 +765,7 @@ public class FacturacionInterfaz extends JFrame {
         }
     }
         
-    private void mostrarVistaPreviaRecibo(String nitCi, String nombre, String metodoPago, double granTotal, List<Producto> productosVendidos, double cantidadPagada, double cambio, FacturacionInterfaz facturacionInterfaz) {
+    private void mostrarVistaPreviaRecibo(String nitCi, String nombre, String metodoPago, double granTotal, List<Producto> productosVendidos, double cantidadPagada, double cambio, int idVenta, FacturacionInterfaz facturacionInterfaz) {
         System.out.println("Valor de NIT/CI recibido: " + nitCi);
         System.out.println("Valor de nombre recibido: " + nombre);
         if (metodoPago != null) {
@@ -832,7 +796,7 @@ public class FacturacionInterfaz extends JFrame {
             sb.append("-------------------------------------------------------------------------------\n");
             sb.append(String.format("%-5s: %s\n", "                                NIT", "1234567890"));
             sb.append(String.format("%5s: %s\n", "                     Cod. Autorizacion", "1234567890"));
-            sb.append(String.format("%5s: %s\n", "                                 N° Factura", "0"));
+            sb.append(String.format("%5s: %s\n", "                                 N° Factura", idVenta));
             sb.append("-------------------------------------------------------------------------------\n");
             sb.append(String.format("%-5s: %s\n", "                         Fecha", fechaHoraFormateada));
             sb.append(String.format("%-5s: %s\n", "                                 NIT/CI", nitCiMostrar));
@@ -890,54 +854,48 @@ public class FacturacionInterfaz extends JFrame {
         }
     }          
     
-    private void registrarVentaEnBaseDeDatos(Venta venta, int idCliente, double granTotal, String metodoPagoSeleccionado){
-        // Información de conexión a la base de datos
+    private int registrarVentaEnBaseDeDatos(Venta venta, int idCliente, double granTotal, String metodoPagoSeleccionado) throws SQLException {
         String url = "jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion";
         String usuario = "Neoar2000";
         String contraseña = "Guitarhero3-*$.";
-        
-        Connection connection = null; // Declarar la variable connection fuera del bloque try
-    
+        Connection connection = null;
+        int idVenta = -1; // Inicializar el ID de la venta a -1
+
         try {
-            // Establecer la conexión con la base de datos
             connection = DriverManager.getConnection(url, usuario, contraseña);
-            
-            // Consulta SQL para insertar los datos de la venta
             String sql = "INSERT INTO ventas (id_cliente, total, fecha, metodo_pago) VALUES (?, ?, ?, ?)";
-    
-            // Preparar la declaración SQL para la inserción de datos
-            try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                // Establecer los valores de los parámetros en la declaración preparada
-                statement.setInt(1, idCliente); // Establecer el ID del cliente
-                statement.setDouble(2, granTotal); // Establecer el granTotal como el valor del total
+
+            // Preparar la declaración SQL con la opción de recuperar claves generadas
+            try (PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                statement.setInt(1, idCliente);
+                statement.setDouble(2, granTotal);
                 statement.setTimestamp(3, Timestamp.valueOf(venta.getFechaHora()));
-                statement.setString(4, metodoPagoSeleccionado); // Utilizar el métodoPago proporcionado como parámetro
-    
-                // Ejecutar la consulta SQL para insertar los datos en la base de datos
-                int filasInsertadas = statement.executeUpdate();
-                if (filasInsertadas > 0) {
-                    System.out.println("La venta ha sido registrada correctamente en la base de datos.");
-                } else {
-                    System.out.println("Error: No se pudo registrar la venta en la base de datos.");
+                statement.setString(4, metodoPagoSeleccionado);
+
+                int affectedRows = statement.executeUpdate();
+                if (affectedRows == 0) {
+                    throw new SQLException("La creación de la venta falló, no se insertaron filas.");
                 }
-            } catch (SQLException e) {
-                e.printStackTrace();
-                System.out.println("Error al intentar preparar la consulta SQL.");
+
+                // Recuperar el ID de la venta generada
+                try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        idVenta = generatedKeys.getInt(1);
+                    } else {
+                        throw new SQLException("La creación de la venta falló, no se pudo obtener el ID.");
+                    }
+                }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
-            System.out.println("Error al intentar establecer la conexión con la base de datos.");
+            // Propagar la excepción para manejarla en un nivel superior
+            throw e;
         } finally {
-            // Cerrar la conexión después de completar todas las operaciones
+            // Cerrar la conexión
             if (connection != null) {
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                    System.out.println("Error al cerrar la conexión.");
-                }
+                connection.close();
             }
         }
+        return idVenta; // Devolver el ID de la venta
     }               
     
     public void limpiarCampos() {
