@@ -1,0 +1,14 @@
+{
+    "java.project.referencedLibraries": [
+        "lib\\core-3.5.3-javadoc.jar",
+        "lib\\core-3.5.3-sources.jar",
+        "lib\\core-3.5.3.jar",
+        "lib\\javase-3.5.3.jar",
+        "lib\\javase-3.0.1.jar",
+        "lib\\mysql-connector-j-8.3.0.jar"
+    ],
+    "java.project.sourcePaths": [
+        "."
+    ],
+    "java.configuration.updateBuildConfiguration": "automatic"
+}

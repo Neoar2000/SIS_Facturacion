@@ -6,7 +6,6 @@ import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
-
 import javax.swing.event.ChangeEvent;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,12 +15,14 @@ import javax.swing.text.DocumentFilter;
 import javax.swing.text.AbstractDocument;
 import java.sql.*;
 import java.awt.event.*;
+import java.io.ByteArrayOutputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import net.glxn.qrgen.javase.QRCode;
 
 public class FacturacionInterfaz extends JFrame {
     // Definición de la clase Cliente
@@ -53,6 +54,7 @@ public class FacturacionInterfaz extends JFrame {
     private JTextField nombreTextField;
     private JDialog datosClienteDialog;
     private double granTotal = 0;
+    private byte[] qrCodeBytes;
 
     // Lista de productos de ejemplo
     private List<Producto> productos = new ArrayList<>();
@@ -302,7 +304,7 @@ public class FacturacionInterfaz extends JFrame {
                             // Obtener el ID del producto desde la base de datos usando el sistemaDAO
                             int idProducto = sistemaDAO.obtenerIdProducto(nombre);
    
-                            productos.add(new Producto(idProducto, nombre, precio));
+                            productos.add(new Producto(idProducto, nombre, precio, 1));
                         }
                     }
                 }
@@ -665,7 +667,7 @@ public class FacturacionInterfaz extends JFrame {
                 int cantidad = (int) tableModel.getValueAt(i, 2);
                 double precioTotal = precioUnitario * cantidad;
                 int idProducto = sistemaDAO.obtenerIdProducto(nombreProducto);
-                Producto producto = new Producto(idProducto, nombreProducto, precioUnitario);
+                Producto producto = new Producto(idProducto, nombreProducto, precioUnitario, 1);
                 productosVendidos.add(producto);
                 granTotal += precioTotal;
             }
@@ -770,8 +772,9 @@ public class FacturacionInterfaz extends JFrame {
         System.out.println("Valor de NIT/CI recibido: " + nitCi);
         System.out.println("Valor de nombre recibido: " + nombre);
         if (metodoPago != null) {
-            // Si el método de pago no es nulo, entonces mostrar la vista previa del recibo
-    
+            String contenidoQR = "Detalles relevantes para el QR como NIT/CI: " + nitCi + ", Nombre: " + nombre + ", Total: " + granTotal;
+            agregarCodigoQR(contenidoQR);  // Genera el QR
+
             // Obtener la fecha y la hora actual
             LocalDateTime fechaHoraActual = LocalDateTime.now();
     
@@ -784,6 +787,12 @@ public class FacturacionInterfaz extends JFrame {
     
             // Verificar si el nombre está vacío y ajustar el valor si es necesario
             String nombreMostrar = nombre;
+
+            // Tamaños de las columnas
+            int widthProducto = 19; // Ancho para el nombre del producto
+            int widthPrecio = 19;   // Ancho para el precio unitario
+            int widthCantidad = 19;  // Ancho para la cantidad
+            int widthTotal = 19;    // Ancho para el total
     
             // Construir el recibo completo aquí usando los datos proporcionados
             StringBuilder sb = new StringBuilder();
@@ -803,23 +812,21 @@ public class FacturacionInterfaz extends JFrame {
             sb.append(String.format("%-5s: %s\n", "                                 NIT/CI", nitCiMostrar));
             sb.append(String.format("%5s: %s\n", "                                 Nombre", nombreMostrar));
             sb.append("-------------------------------------------------------------------------------\n");
-            sb.append(String.format("%-20s %-20s %-10s %-10s\n", "Producto", "P. Unitario", "Cantidad", "Total"));
+            sb.append(String.format("%-" + widthProducto + "s %-" + widthPrecio + "s %-" + widthCantidad + "s %-" + widthTotal + "s\n", "Detalle", "P. Unit.", "Cant.", "Total"));
     
             // Calcula el gran total correctamente sin sumarlo dentro del bucle
             double granTotalCalculado = granTotal;
     
             // Resto del código dentro del bloque try-catch
-            for (int i = 0; i < tableModel.getRowCount(); i++) {
-                String nombreProducto = (String) tableModel.getValueAt(i, 0);
-                double precioUnitario = (double) tableModel.getValueAt(i, 1);
-                int cantidad = (int) tableModel.getValueAt(i, 2);
-                double precioTotal = precioUnitario * cantidad; // Calcular el precio total del producto
+            for (Producto producto : productosVendidos) {
+                String nombreProducto = producto.getNombre();
+                double precioUnitario = producto.getPrecio();
+                int cantidad = producto.getCantidad();
+                double precioTotal = precioUnitario * cantidad;
     
-                // Datos de cada producto, alineados en las columnas correspondientes
-                sb.append(String.format("%-20s Bs. %-19.2f %-10d Bs. %.2f\n", nombreProducto, precioUnitario, cantidad, precioTotal));
-                
-                // Sumar el precio total al gran total calculado
-                granTotalCalculado += precioTotal;
+                // Asegúrate de que los valores se alineen correctamente bajo sus respectivos títulos
+                sb.append(String.format("%-" + widthProducto + "s Bs. %-" + (widthPrecio - 4) + ".2f %-" + widthCantidad + "d Bs. %-" + (widthTotal - 4) + ".2f\n",
+                                        nombreProducto, precioUnitario, cantidad, precioTotal));
             }
             sb.append("-------------------------------------------------------------------------------\n\n");
     
@@ -830,6 +837,13 @@ public class FacturacionInterfaz extends JFrame {
             }
     
             sb.append(String.format("%-5s Bs. %.2f\n\n", "Monto Total:", granTotal));
+            
+            // Convertir el granTotal a palabras
+            int parteEntera = (int) granTotal;
+            int centavos = (int) Math.round((granTotal - parteEntera) * 100);
+            String totalEnLetras = NumeroALetras.convertir(parteEntera) + " " + centavos + "/100 Bolivianos";
+            sb.append("Son: " + totalEnLetras + "\n\n");
+
             sb.append(String.format("%-5s: %s\n\n", "Metodo de Pago", metodoPago));
     
             if (metodoPago.equals("Efectivo")) {
@@ -847,13 +861,93 @@ public class FacturacionInterfaz extends JFrame {
                 sb.append("                             Facturacion NEO v1.0");
             }
     
-            VistaPreviaRecibo vistaPreviaRecibo = new VistaPreviaRecibo(this, sb.toString(), 0.0, facturacionInterfaz);
+            VistaPreviaRecibo vistaPreviaRecibo = new VistaPreviaRecibo(this, sb.toString(), 0.0, facturacionInterfaz, qrCodeBytes);
             vistaPreviaRecibo.setVisible(true);
         } else {
             // Si el método de pago es nulo, imprimir un mensaje de error o manejar la situación según sea necesario
             System.out.println("El método de pago es nulo.");
         }
-    }          
+    }
+
+    private void agregarCodigoQR(String contenidoQR) {
+        ByteArrayOutputStream outputStream = QRCode.from(contenidoQR).withSize(100, 100).stream();
+        qrCodeBytes = outputStream.toByteArray();  // Guarda en la variable de instancia
+    }        
+    
+    public class NumeroALetras {
+        private static final String[] UNIDADES = {"", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez",
+                                                 "once", "doce", "trece", "catorce", "quince", "dieciséis", "diecisiete", "dieciocho", "diecinueve"};
+        private static final String[] DECENAS = {"", "diez", "veinte", "treinta", "cuarenta", "cincuenta", "sesenta", "setenta", "ochenta", "noventa"};
+        private static final String[] CENTENAS = {"", "ciento", "doscientos", "trescientos", "cuatrocientos", "quinientos", "seiscientos",
+                                                  "setecientos", "ochocientos", "novecientos"};
+    
+        public static String convertir(long numero) {
+            if (numero == 0) {
+                return "cero";
+            }
+    
+            if (numero < 0) {
+                return "menos " + convertir(-numero);
+            }
+    
+            String palabras = "";
+            long parteMillones = numero / 1000000;
+            long parteMiles = (numero % 1000000) / 1000;
+            long parteCientos = numero % 1000;
+    
+            if (parteMillones > 0) {
+                if (parteMillones == 1) {
+                    palabras += "un millón ";
+                } else {
+                    palabras += convertir(parteMillones) + " millones ";
+                }
+            }
+    
+            if (parteMiles > 0) {
+                if (parteMiles == 1) {
+                    palabras += "mil ";
+                } else {
+                    palabras += convertir(parteMiles) + " mil ";
+                }
+            }
+    
+            if (parteCientos > 0) {
+                palabras += convertirCientos((int) parteCientos);
+            }
+    
+            return palabras.trim();
+        }
+    
+        private static String convertirCientos(int numero) {
+            if (numero < 20) {
+                return UNIDADES[numero];
+            }
+    
+            if (numero == 100) {
+                return "cien";
+            }
+    
+            String palabras = CENTENAS[numero / 100];
+            int decenas = numero % 100;
+    
+            if (decenas > 0) {
+                if (numero > 100) {
+                    palabras += " ";
+                }
+                if (decenas < 20) {
+                    palabras += UNIDADES[decenas];
+                } else {
+                    palabras += DECENAS[decenas / 10];
+                    int unidades = decenas % 10;
+                    if (unidades > 0) {
+                        palabras += " y " + UNIDADES[unidades];
+                    }
+                }
+            }
+    
+            return palabras;
+        }
+    }                
     
     private int registrarVentaEnBaseDeDatos(Venta venta, int idCliente, double granTotal, String metodoPagoSeleccionado) throws SQLException {
         String url = "jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion";

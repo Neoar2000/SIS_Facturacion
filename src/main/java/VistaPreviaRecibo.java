@@ -2,15 +2,20 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.print.*;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+import java.io.ByteArrayInputStream;
 
 public class VistaPreviaRecibo extends JDialog {  // Cambiado de JFrame a JDialog
     private JTextArea reciboTextArea;
     private FacturacionInterfaz facturacionInterfaz;
+    private byte[] qrCodeBytes;
 
-    public VistaPreviaRecibo(JFrame owner, String recibo, double dummy, FacturacionInterfaz facturacionInterfaz) {
+    public VistaPreviaRecibo(JFrame owner, String recibo, double dummy, FacturacionInterfaz facturacionInterfaz, byte[] qrCodeBytes) {
         super(owner, "Factura de Venta", true);  // Se agrega el constructor de JDialog con modalidad
         this.facturacionInterfaz = facturacionInterfaz;
-        setSize(450, 800); // Aumentar el tamaño de la ventana
+        this.qrCodeBytes = qrCodeBytes;
+        setSize(450, 850); // Aumentar el tamaño de la ventana
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
 
@@ -66,17 +71,39 @@ public class VistaPreviaRecibo extends JDialog {  // Cambiado de JFrame a JDialo
                 Graphics2D g2d = (Graphics2D) graphics;
                 g2d.translate(pageFormat.getImageableX(), pageFormat.getImageableY());
                 g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-    
+        
                 Font plainFont = new Font("Arial", Font.PLAIN, 8);
                 Font boldFont = new Font("Arial", Font.BOLD, 8);
-    
-                int y = 10;
+        
+                int y = 10; // Initial y position
+                boolean qrDrawn = false;
                 String[] lines = reciboTextArea.getText().split("\n");
                 for (String line : lines) {
+                    // Check if it is the position to insert QR
+                    if (line.contains("                             Facturacion NEO v1.0") && !qrDrawn) {
+                        // Insert QR before this line
+                        if (qrCodeBytes != null) {
+                            try {
+                                BufferedImage qrImage = ImageIO.read(new ByteArrayInputStream(qrCodeBytes));
+                                int qrWidth = qrImage.getWidth();
+                                int pageWidth = (int) pageFormat.getImageableWidth();
+        
+                                // Calculate the x position to center the QR code
+                                int qrXPosition = (pageWidth - qrWidth) / 2;
+        
+                                g2d.drawImage(qrImage, qrXPosition, y, null);
+                                y += qrImage.getHeight() + 5; // Update y to draw the next text below the QR
+                                qrDrawn = true;
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+        
                     int x = 0; // Reset x position for each line
-                    String[] parts = line.split("(?<=FACTURA|CON DERECHO A CREDITO FISCAL|Ley N° 453:|Producto|P. Unitario|Cantidad|Total|Fecha|NIT/CI:|Nombre:|NIT:|Cod. Autorizacion:|N° Factura:)");
+                    String[] parts = line.split("(?<=FACTURA|CON DERECHO A CREDITO FISCAL|Ley N° 453:|Producto|P. Unitario|Cantidad|Total|Fecha|NIT/CI:|Nombre:|NIT:|Cod. Autorizacion:|N° Factura:|Son:|Metodo de Pago:|Efectivo pagado:|Cambio:)");
                     for (String part : parts) {
-                        if (part.contains("FACTURA") || part.contains("CON DERECHO A CREDITO FISCAL") || part.contains("Ley N° 453:") || part.contains("Producto") || part.contains("P. Unitario") || part.contains("Cantidad") || part.contains("Total") || part.contains("Fecha") || part.contains("NIT/CI:") || part.contains("Nombre:") || part.contains("NIT:") || part.contains("Cod. Autorizacion:") || part.contains("N° Factura:")) {
+                        if (part.matches(".*(FACTURA|CON DERECHO A CREDITO FISCAL|Ley N° 453:|Producto|P. Unitario|Cantidad|Total|Fecha|NIT/CI:|Nombre:|NIT:|Cod. Autorizacion:|N° Factura:|Son:|Metodo de Pago:|Efectivo pagado:|Cambio:).*")) {
                             g2d.setFont(boldFont); // Set font to bold for keywords
                         } else {
                             g2d.setFont(plainFont); // Set font to plain for other text
@@ -86,9 +113,10 @@ public class VistaPreviaRecibo extends JDialog {  // Cambiado de JFrame a JDialo
                     }
                     y += g2d.getFontMetrics().getHeight(); // Move to the next line
                 }
+        
                 return PAGE_EXISTS;
             }
-        }, pageFormat);
+        }, pageFormat);                
     
         // Mostrar el diálogo de impresión
         if (printerJob.printDialog()) {
