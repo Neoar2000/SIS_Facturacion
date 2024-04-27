@@ -864,7 +864,12 @@ public class FacturacionInterfaz extends JFrame {
             // Convertir el granTotal a palabras
             int parteEntera = (int) granTotal;
             int centavos = (int) Math.round((granTotal - parteEntera) * 100);
-            String totalEnLetras = NumeroALetras.convertir(parteEntera) + " " + centavos + "/100 Bolivianos";
+            String totalEnLetras;
+            if (centavos == 0) {
+                totalEnLetras = NumeroALetras.convertir(parteEntera) + " 00/100 Bolivianos";
+            } else {
+                totalEnLetras = NumeroALetras.convertir(parteEntera) + " " + String.format("%02d", centavos) + "/100 Bolivianos";
+            }
             sb.append("Son: " + totalEnLetras + "\n\n");
 
             sb.append(String.format("%-5s: %s\n\n", "Metodo de Pago", metodoPago));
@@ -1058,7 +1063,7 @@ public class FacturacionInterfaz extends JFrame {
 
     private void mostrarReporteDeVentasDiarias() {
         JDialog reporteDialog = new JDialog(this, "Reporte de Ventas Diarias", true);
-        reporteDialog.setSize(900, 500);  // Tamaño ajustado para mayor visibilidad
+        reporteDialog.setSize(1000, 800);  // Tamaño ajustado para mayor visibilidad
         reporteDialog.setLocationRelativeTo(this);
     
         // Modelo de la tabla para el reporte
