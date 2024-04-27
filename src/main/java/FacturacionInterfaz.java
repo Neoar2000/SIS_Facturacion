@@ -510,9 +510,9 @@ public class FacturacionInterfaz extends JFrame {
     
             private void validateNitCi() {
                 String nitCi = nitCiTextField.getText();
-                if (!nitCi.matches("[0-9EeGgDd-]{0,10}")) {
+                if (!nitCi.matches("[0-9EeGgDd-]{0,12}")) {
                     // El texto ingresado no cumple con los criterios
-                    JOptionPane.showMessageDialog(datosClienteDialog, "Solo se acepta números, - y EGD, y un máximo de 10 caracteres.", "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(datosClienteDialog, "Solo se acepta números, - y EGD, y un máximo de 12 caracteres.", "Error", JOptionPane.ERROR_MESSAGE);
                     nitCiTextField.setText("");
                 }
             }
@@ -795,7 +795,7 @@ public class FacturacionInterfaz extends JFrame {
         System.out.println("Valor de NIT/CI recibido: " + nitCi);
         System.out.println("Valor de nombre recibido: " + nombre);
         if (metodoPago != null) {
-            String contenidoQR = "Detalles relevantes para el QR como NIT/CI: " + nitCi + ", Nombre: " + nombre + ", Total: " + granTotal;
+            String contenidoQR = "https://siat.impuestos.gob.bo/consulta/QR?nit=258522020&cuf=11B054D4E9C5DB0508FDEE1EE3074B48E7DB04C1162CB5E03E6F88E74&numero=76520&t=1";
             agregarCodigoQR(contenidoQR);  // Genera el QR
 
             // Obtener la fecha y la hora actual
@@ -920,7 +920,7 @@ public class FacturacionInterfaz extends JFrame {
     
             if (parteMillones > 0) {
                 if (parteMillones == 1) {
-                    palabras += "un millón ";
+                    palabras += "Un millón ";
                 } else {
                     palabras += convertir(parteMillones) + " millones ";
                 }
@@ -938,6 +938,9 @@ public class FacturacionInterfaz extends JFrame {
                 palabras += convertirCientos((int) parteCientos);
             }
     
+            // Convertir la primera letra a mayúscula
+            palabras = palabras.substring(0, 1).toUpperCase() + palabras.substring(1);
+    
             return palabras.trim();
         }
     
@@ -945,32 +948,41 @@ public class FacturacionInterfaz extends JFrame {
             if (numero < 20) {
                 return UNIDADES[numero];
             }
-    
+        
             if (numero == 100) {
                 return "cien";
             }
-    
+        
             String palabras = CENTENAS[numero / 100];
-            int decenas = numero % 100;
-    
+            int decenas = (numero % 100) / 10; // Obtenemos la posición de la decena
+            int unidades = numero % 10; // Obtenemos la posición de la unidad
+        
             if (decenas > 0) {
                 if (numero > 100) {
                     palabras += " ";
                 }
-                if (decenas < 20) {
-                    palabras += UNIDADES[decenas];
+                if (decenas == 1) {
+                    if (unidades > 0) {
+                        palabras += UNIDADES[unidades];
+                    } else {
+                        palabras += "diez";
+                    }
+                } else if (decenas == 2 && unidades > 0) {
+                    palabras += "veinti" + UNIDADES[unidades];
                 } else {
-                    palabras += DECENAS[decenas / 10];
-                    int unidades = decenas % 10;
+                    palabras += DECENAS[decenas];
                     if (unidades > 0) {
                         palabras += " y " + UNIDADES[unidades];
                     }
                 }
+            } else if (unidades > 0) {
+                palabras += UNIDADES[unidades];
             }
-    
+        
             return palabras;
-        }
+        }        
     }
+    
     
     private String obtenerNitEmpresa() {
         String nitEmpresa = "";  // Variable para almacenar el NIT
