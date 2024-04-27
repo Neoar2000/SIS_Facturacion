@@ -1,10 +1,19 @@
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.print.*;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 import java.io.ByteArrayInputStream;
+import java.io.FileOutputStream;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.pdf.PdfWriter;
+import com.itextpdf.text.Image;
+import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.FontFactory;
+import java.io.File;
 
 public class VistaPreviaRecibo extends JDialog {  // Cambiado de JFrame a JDialog
     private JTextArea reciboTextArea;
@@ -32,8 +41,18 @@ public class VistaPreviaRecibo extends JDialog {  // Cambiado de JFrame a JDialo
             }
         });
 
+        JButton guardarPdfButton = new JButton("Guardar como PDF");
+        guardarPdfButton.setFont(new Font("Arial", Font.BOLD, 16));
+        guardarPdfButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                guardarComoPDF();
+            }
+        });
+
         JPanel buttonPanel = new JPanel();
         buttonPanel.add(imprimirButton);
+        buttonPanel.add(guardarPdfButton);
 
         getContentPane().setLayout(new BorderLayout());
         getContentPane().add(new JScrollPane(reciboTextArea), BorderLayout.CENTER);
@@ -133,6 +152,47 @@ public class VistaPreviaRecibo extends JDialog {  // Cambiado de JFrame a JDialo
 
     private double fromMMToPPI(double mm) {
         return mm * 2.83465; // 1 mm = 2.83465 puntos
+    }
+
+    private void guardarComoPDF() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Guardar Recibo como PDF");
+        fileChooser.setFileFilter(new FileNameExtensionFilter("PDF Documents", "pdf"));
+        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File fileToSave = fileChooser.getSelectedFile();
+            if (!fileToSave.getAbsolutePath().endsWith(".pdf")) {
+                fileToSave = new File(fileToSave.getAbsolutePath() + ".pdf");
+            }
+    
+            Rectangle pageSize = new Rectangle((float)fromMMToPPI(80), (float)fromMMToPPI(297));
+            Document document = new Document(pageSize, 10, 10, 10, 10); // Margenes pequeños
+    
+            try {
+                PdfWriter.getInstance(document, new FileOutputStream(fileToSave));
+                document.open();
+    
+                // Define una fuente de tamaño 8 usando la clase completamente calificada para Font
+                com.itextpdf.text.Font font = FontFactory.getFont(FontFactory.HELVETICA, 8);
+    
+                // Agregar el texto del recibo con la fuente ajustada
+                Paragraph paragraph = new Paragraph(reciboTextArea.getText(), font);
+                document.add(paragraph);
+    
+                // Agregar el QR si está disponible
+                if (qrCodeBytes != null) {
+                    Image qrImage = Image.getInstance(qrCodeBytes);
+                    qrImage.setAlignment(Image.ALIGN_CENTER);
+                    document.add(qrImage);
+                }
+    
+                document.close();
+                JOptionPane.showMessageDialog(this, "Recibo guardado como PDF exitosamente.", "Guardado", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error al guardar el recibo como PDF.", "Error", JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
+            }
+        }
+        dispose();
     }
 
     private void volverAFacturacionInterfaz() {

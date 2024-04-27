@@ -1,3 +1,4 @@
+// Para mostrar cuadros de diálogo informativos o de error.
 import javax.swing.*;
 import javax.swing.event.CellEditorListener;
 import javax.swing.table.DefaultTableModel;
@@ -15,6 +16,10 @@ import javax.swing.text.DocumentFilter;
 import javax.swing.text.AbstractDocument;
 import java.sql.*;
 import java.awt.event.*;
+import java.io.File; // Para manejar archivos.
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.PrintWriter; // Para escribir en archivos.
 import java.io.ByteArrayOutputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -22,7 +27,14 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import net.glxn.qrgen.javase.QRCode;
+import javax.swing.filechooser.FileNameExtensionFilter; // Para filtrar archivos en el file chooser.
+import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfWriter;
+
+import net.glxn.qrgen.javase.QRCode; // Para generar códigos QR.
 
 public class FacturacionInterfaz extends JFrame {
     // Definición de la clase Cliente
@@ -204,18 +216,28 @@ public class FacturacionInterfaz extends JFrame {
         eliminarButton.setFont(new Font(eliminarButton.getFont().getName(), Font.BOLD, 20)); // Aumentar el tamaño del texto del botón
         eliminarButton.addActionListener(e -> eliminarProductoSeleccionado());
 
-        bottomButtonPanel.add(eliminarButton);
-        bottomButtonPanel.add(finalizarButton);
+        // Panel para los botones de acción (Salir del Sistema y Reporte Diario)
+        JPanel southButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
 
-        buttonPanel.add(topButtonPanel, BorderLayout.NORTH); // Agregar los botones superiores
-        buttonPanel.add(bottomButtonPanel, BorderLayout.CENTER); // Agregar los botones inferiores
-
-        // Botón "Salir del Sistema" en el SOUTH
+        // Botón "Salir del Sistema"
         JButton salirButton = new JButton("Salir del Sistema");
         salirButton.setFont(new Font(salirButton.getFont().getName(), Font.BOLD, 20)); // Aumentar el tamaño del texto del botón
         salirButton.addActionListener(e -> System.exit(0)); // Salir completamente del sistema
 
-        buttonPanel.add(salirButton, BorderLayout.SOUTH); // Agregar el botón de salir del sistema en el sur
+        // Botón "Reporte Diario"
+        JButton btnReporteDiario = new JButton("Reporte Diario");
+        btnReporteDiario.setFont(new Font(btnReporteDiario.getFont().getName(), Font.BOLD, 20));
+        btnReporteDiario.addActionListener(e -> mostrarReporteDeVentasDiarias());
+
+
+        bottomButtonPanel.add(eliminarButton);
+        bottomButtonPanel.add(finalizarButton);
+        southButtonPanel.add(btnReporteDiario);
+        southButtonPanel.add(salirButton);
+
+        buttonPanel.add(topButtonPanel, BorderLayout.NORTH); // Agregar los botones superiores
+        buttonPanel.add(bottomButtonPanel, BorderLayout.CENTER); // Agregar los botones inferiores
+        buttonPanel.add(southButtonPanel, BorderLayout.SOUTH);
 
         mainPanel.add(buttonPanel, BorderLayout.EAST);
 
@@ -713,7 +735,7 @@ public class FacturacionInterfaz extends JFrame {
                 Venta venta = new Venta(nitCi, nombre, fechaHoraActual, productosVendidos, granTotal);
                 int idVenta;
                 try {
-                    idVenta = registrarVentaEnBaseDeDatos(venta, idCliente, granTotal, metodoPago);
+                    idVenta = registrarVentaEnBaseDeDatos(venta, idCliente, nitCi, nombre, granTotal, metodoPago);
                 } catch (SQLException e) {
                     JOptionPane.showMessageDialog(null, "Error al registrar la venta en la base de datos: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
                     return;
@@ -769,6 +791,7 @@ public class FacturacionInterfaz extends JFrame {
     }
         
     private void mostrarVistaPreviaRecibo(String nitCi, String nombre, String metodoPago, double granTotal, List<Producto> productosVendidos, double cantidadPagada, double cambio, int idVenta, FacturacionInterfaz facturacionInterfaz) {
+        String nitEmpresa = obtenerNitEmpresa();
         System.out.println("Valor de NIT/CI recibido: " + nitCi);
         System.out.println("Valor de nombre recibido: " + nombre);
         if (metodoPago != null) {
@@ -803,15 +826,15 @@ public class FacturacionInterfaz extends JFrame {
             sb.append("                          Calle Antonio Gonzales #740\n");
             sb.append("                                       71525880\n");
             sb.append("                                  LA PAZ - BOLIVIA\n");
-            sb.append("-------------------------------------------------------------------------------\n");
-            sb.append(String.format("%-5s: %s\n", "                                NIT", "1234567890"));
+            sb.append("-----------------------------------------------------------------------------\n");
+            sb.append(String.format("%-5s: %s\n", "                                NIT", nitEmpresa));
             sb.append(String.format("%5s: %s\n", "                     Cod. Autorizacion", "1234567890"));
             sb.append(String.format("%5s: %s\n", "                                 N° Factura", idVenta));
-            sb.append("-------------------------------------------------------------------------------\n");
+            sb.append("-----------------------------------------------------------------------------\n");
             sb.append(String.format("%-5s: %s\n", "                         Fecha", fechaHoraFormateada));
             sb.append(String.format("%-5s: %s\n", "                                 NIT/CI", nitCiMostrar));
             sb.append(String.format("%5s: %s\n", "                                 Nombre", nombreMostrar));
-            sb.append("-------------------------------------------------------------------------------\n");
+            sb.append("-----------------------------------------------------------------------------\n");
             sb.append(String.format("%-" + widthProducto + "s %-" + widthPrecio + "s %-" + widthCantidad + "s %-" + widthTotal + "s\n", "Detalle", "P. Unit.", "Cant.", "Total"));
     
             // Calcula el gran total correctamente sin sumarlo dentro del bucle
@@ -828,7 +851,7 @@ public class FacturacionInterfaz extends JFrame {
                 sb.append(String.format("%-" + widthProducto + "s Bs. %-" + (widthPrecio - 4) + ".2f %-" + widthCantidad + "d Bs. %-" + (widthTotal - 4) + ".2f\n",
                                         nombreProducto, precioUnitario, cantidad, precioTotal));
             }
-            sb.append("-------------------------------------------------------------------------------\n\n");
+            sb.append("-----------------------------------------------------------------------------\n\n");
     
             // Verifica si hay una discrepancia entre el gran total calculado y el gran total pasado como argumento
             if (granTotalCalculado != granTotal) {
@@ -947,31 +970,59 @@ public class FacturacionInterfaz extends JFrame {
     
             return palabras;
         }
-    }                
+    }
     
-    private int registrarVentaEnBaseDeDatos(Venta venta, int idCliente, double granTotal, String metodoPagoSeleccionado) throws SQLException {
+    private String obtenerNitEmpresa() {
+        String nitEmpresa = "";  // Variable para almacenar el NIT
+        // Parámetros de conexión
+        String url = "jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion";
+        String usuario = "Neoar2000";
+        String contraseña = "Guitarhero3-*$.";
+    
+        // Consulta SQL para obtener el NIT
+        String sql = "SELECT nit FROM nit_empresa WHERE id = 1";  // Asumiendo que quieres obtener un NIT específico
+    
+        // Establecer la conexión y realizar la consulta
+        try (Connection conn = DriverManager.getConnection(url, usuario, contraseña);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+    
+            if (rs.next()) {
+                nitEmpresa = rs.getString("nit");  // Asume que la columna se llama 'nit'
+            }
+    
+        } catch (SQLException e) {
+            System.out.println("Error al obtener el NIT de la empresa: " + e.getMessage());
+        }
+    
+        return nitEmpresa;
+    }    
+    
+    private int registrarVentaEnBaseDeDatos(Venta venta, int idCliente, String nitCi, String nombre, double granTotal, String metodoPagoSeleccionado) throws SQLException {
         String url = "jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion";
         String usuario = "Neoar2000";
         String contraseña = "Guitarhero3-*$.";
         Connection connection = null;
         int idVenta = -1; // Inicializar el ID de la venta a -1
-
+    
         try {
             connection = DriverManager.getConnection(url, usuario, contraseña);
-            String sql = "INSERT INTO ventas (id_cliente, total, fecha, metodo_pago) VALUES (?, ?, ?, ?)";
-
+            String sql = "INSERT INTO ventas (id_cliente, nit_ci, nombre, total, fecha, metodo_pago) VALUES (?, ?, ?, ?, ?, ?)";
+    
             // Preparar la declaración SQL con la opción de recuperar claves generadas
             try (PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
                 statement.setInt(1, idCliente);
-                statement.setDouble(2, granTotal);
-                statement.setTimestamp(3, Timestamp.valueOf(venta.getFechaHora()));
-                statement.setString(4, metodoPagoSeleccionado);
-
+                statement.setString(2, nitCi);
+                statement.setString(3, nombre);  
+                statement.setDouble(4, granTotal);
+                statement.setTimestamp(5, Timestamp.valueOf(venta.getFechaHora()));
+                statement.setString(6, metodoPagoSeleccionado);
+    
                 int affectedRows = statement.executeUpdate();
                 if (affectedRows == 0) {
                     throw new SQLException("La creación de la venta falló, no se insertaron filas.");
                 }
-
+    
                 // Recuperar el ID de la venta generada
                 try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
                     if (generatedKeys.next()) {
@@ -991,7 +1042,161 @@ public class FacturacionInterfaz extends JFrame {
             }
         }
         return idVenta; // Devolver el ID de la venta
-    }               
+    }    
+
+    private void mostrarReporteDeVentasDiarias() {
+        JDialog reporteDialog = new JDialog(this, "Reporte de Ventas Diarias", true);
+        reporteDialog.setSize(900, 500);  // Tamaño ajustado para mayor visibilidad
+        reporteDialog.setLocationRelativeTo(this);
+    
+        // Modelo de la tabla para el reporte
+        DefaultTableModel modelo = new DefaultTableModel();
+        modelo.addColumn("Fecha");
+        modelo.addColumn("NIT/CI");
+        modelo.addColumn("Nombre");
+        modelo.addColumn("Total Venta");
+        modelo.addColumn("Método de Pago");
+    
+        // Tabla para mostrar los datos
+        JTable tablaReporte = new JTable(modelo);
+        tablaReporte.setFont(new Font("Arial", Font.PLAIN, 20)); // Fuente más grande para la tabla
+        tablaReporte.setRowHeight(30);  // Altura de fila ajustada para mejor legibilidad
+        tablaReporte.getTableHeader().setFont(new Font("Arial", Font.BOLD, 20));  // Fuente del encabezado
+    
+        JScrollPane scrollPane = new JScrollPane(tablaReporte);
+        scrollPane.setPreferredSize(new Dimension(780, 450));  // Ajustar el tamaño del JScrollPane
+    
+        reporteDialog.add(scrollPane, BorderLayout.CENTER);
+    
+        // Cargar datos en la tabla
+        cargarDatosReporte(modelo);
+
+        
+        // Panel para botones de acciones
+        JPanel actionPanel = new JPanel();
+
+        JButton csvButton = new JButton("Guardar CSV");
+        csvButton.setFont(new Font("Arial", Font.BOLD, 20));
+        csvButton.addActionListener(e -> guardarCSV(modelo));
+
+        JButton pdfButton = new JButton("Guardar PDF");
+        pdfButton.setFont(new Font("Arial", Font.BOLD, 20));
+        pdfButton.addActionListener(e -> guardarPDF(modelo));
+
+        JButton salirButton = new JButton("Salir");
+        salirButton.setFont(new Font("Arial", Font.BOLD, 20));
+        salirButton.addActionListener(e -> reporteDialog.dispose());
+
+        actionPanel.add(csvButton);
+        actionPanel.add(pdfButton);
+        actionPanel.add(salirButton);
+
+        reporteDialog.add(actionPanel, BorderLayout.SOUTH);
+    
+        // Mostrar el diálogo
+        reporteDialog.setVisible(true);
+    }        
+
+    private void cargarDatosReporte(DefaultTableModel modelo) {
+        String sql = "SELECT fecha, nit_ci, nombre, total, metodo_pago FROM ventas WHERE DATE(fecha) = CURDATE()";
+        try (Connection conn = DriverManager.getConnection("jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.");
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+            
+            while (rs.next()) {
+                Object[] fila = new Object[5];
+                fila[0] = rs.getDate("fecha");
+                fila[1] = rs.getString("nit_ci");
+                fila[2] = rs.getString("nombre");
+                fila[3] = rs.getString("total");
+                fila[4] = rs.getString("metodo_pago");
+                
+                modelo.addRow(fila);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error al cargar el reporte de ventas.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private void guardarCSV(DefaultTableModel modelo) {
+    JFileChooser fileChooser = new JFileChooser();
+    fileChooser.setDialogTitle("Guardar como CSV");
+    fileChooser.setFileFilter(new FileNameExtensionFilter("CSV file (*.csv)", "csv"));
+    int userSelection = fileChooser.showSaveDialog(this);
+
+    if (userSelection == JFileChooser.APPROVE_OPTION) {
+        File fileToSave = fileChooser.getSelectedFile();
+        try (PrintWriter pw = new PrintWriter(new File(fileToSave.getAbsolutePath() + ".csv"))) {
+            StringBuilder sb = new StringBuilder();
+            // Escribir encabezados
+            for (int i = 0; i < modelo.getColumnCount(); i++) {
+                sb.append(modelo.getColumnName(i));
+                if (i < modelo.getColumnCount() - 1) sb.append(",");
+            }
+            sb.append("\n");
+            // Escribir datos
+            for (int i = 0; i < modelo.getRowCount(); i++) {
+                for (int j = 0; j < modelo.getColumnCount(); j++) {
+                    sb.append(modelo.getValueAt(i, j).toString());
+                    if (j < modelo.getColumnCount() - 1) sb.append(",");
+                }
+                sb.append("\n");
+            }
+            pw.write(sb.toString());
+            JOptionPane.showMessageDialog(this, "Archivo CSV guardado exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error guardando el archivo CSV", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+}
+
+    private void guardarPDF(DefaultTableModel modelo) {
+    JFileChooser fileChooser = new JFileChooser();
+    fileChooser.setDialogTitle("Guardar como PDF");
+    fileChooser.setFileFilter(new FileNameExtensionFilter("PDF file (*.pdf)", "pdf"));
+    int userSelection = fileChooser.showSaveDialog(this);
+
+    if (userSelection == JFileChooser.APPROVE_OPTION) {
+        File fileToSave = fileChooser.getSelectedFile();
+        String filePath = fileToSave.getAbsolutePath();
+        if (!filePath.endsWith(".pdf")) {
+            filePath += ".pdf";
+        }
+
+        Document document = new Document();
+        try {
+            PdfWriter.getInstance(document, new FileOutputStream(filePath));
+            document.open();
+
+            // Agregar un título
+            document.add(new Paragraph("Reporte de Ventas Diarias"));
+
+            // Crear una tabla PDF con la cantidad correcta de columnas
+            PdfPTable table = new PdfPTable(modelo.getColumnCount());
+
+            // Agregar cabeceras de columna
+            for (int i = 0; i < modelo.getColumnCount(); i++) {
+                table.addCell(modelo.getColumnName(i));
+            }
+
+            // Agregar las filas del modelo de la tabla
+            for (int rows = 0; rows < modelo.getRowCount(); rows++) {
+                for (int cols = 0; cols < modelo.getColumnCount(); cols++) {
+                    table.addCell(modelo.getValueAt(rows, cols).toString());
+                }
+            }
+
+            document.add(table);
+            document.close();
+            JOptionPane.showMessageDialog(this, "Archivo PDF guardado exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+        } catch (DocumentException | FileNotFoundException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error guardando el archivo PDF", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+}
     
     public void limpiarCampos() {
         nitCiTextField.setText("");
