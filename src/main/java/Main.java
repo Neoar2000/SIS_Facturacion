@@ -11,7 +11,7 @@ public class Main extends JFrame {
     private boolean loginSuccessful = false;
 
     // Datos de conexión a la base de datos MySQL
-    private static final String DB_URL = "jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion";
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/SIS_Facturacion";
     private static final String DB_USER = "Neoar2000";
     private static final String DB_PASSWORD = "Guitarhero3-*$.";
 

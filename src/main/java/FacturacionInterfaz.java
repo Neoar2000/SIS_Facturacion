@@ -311,7 +311,7 @@ public class FacturacionInterfaz extends JFrame {
         productos = new ArrayList<>();
     
         // Conectar a la base de datos
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.")) {
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.")) {
             try (SistemaDAO sistemaDAO = new SistemaDAO(connection)) {
                 // Crear una consulta SQL para seleccionar todos los productos
                 String sql = "SELECT nombre, precio FROM productos";
@@ -603,7 +603,7 @@ public class FacturacionInterfaz extends JFrame {
     
         // Si no está en el mapa o no se encontró en la función anterior, consultar la base de datos
         String nombreCliente = null;
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.");
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.");
              PreparedStatement statement = connection.prepareStatement("SELECT id, nombre FROM clientes WHERE nit_ci = ?")) {
             statement.setString(1, nitCi);
             try (ResultSet resultSet = statement.executeQuery()) {
@@ -640,7 +640,7 @@ public class FacturacionInterfaz extends JFrame {
         }
     
         // Realizar la inserción de los datos del cliente en la tabla "clientes" en la base de datos MySQL
-        String url = "jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion";
+        String url = "jdbc:mysql://localhost:3306/SIS_Facturacion";
         String usuario = "Neoar2000";
         String contraseña = "Guitarhero3-*$.";
         String sql = "INSERT INTO clientes (nit_ci, nombre) VALUES (?, ?)";
@@ -678,7 +678,7 @@ public class FacturacionInterfaz extends JFrame {
     private void registrarCompra(String nitCi, String nombre, String metodoPago) throws SQLException {
         List<Producto> productosVendidos = new ArrayList<>();
         
-        Connection connection = DriverManager.getConnection("jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.");
+        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.");
         connection.setAutoCommit(false);  // Importante para manejar la transacción manualmente
         SistemaDAO sistemaDAO = new SistemaDAO(connection);
     
@@ -992,7 +992,7 @@ public class FacturacionInterfaz extends JFrame {
     private String obtenerNitEmpresa() {
         String nitEmpresa = "";  // Variable para almacenar el NIT
         // Parámetros de conexión
-        String url = "jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion";
+        String url = "jdbc:mysql://localhost:3306/SIS_Facturacion";
         String usuario = "Neoar2000";
         String contraseña = "Guitarhero3-*$.";
     
@@ -1016,7 +1016,7 @@ public class FacturacionInterfaz extends JFrame {
     }    
     
     private int registrarVentaEnBaseDeDatos(Venta venta, int idCliente, String nitCi, String nombre, double granTotal, String metodoPagoSeleccionado) throws SQLException {
-        String url = "jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion";
+        String url = "jdbc:mysql://localhost:3306/SIS_Facturacion";
         String usuario = "Neoar2000";
         String contraseña = "Guitarhero3-*$.";
         Connection connection = null;
@@ -1116,7 +1116,7 @@ public class FacturacionInterfaz extends JFrame {
 
     private void cargarDatosReporte(DefaultTableModel modelo) {
         String sql = "SELECT fecha, nit_ci, nombre, total, metodo_pago FROM ventas WHERE DATE(fecha) = CURDATE()";
-        try (Connection conn = DriverManager.getConnection("jdbc:mysql://MacBook-Pro-de-Neo.local:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.");
+        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/SIS_Facturacion", "Neoar2000", "Guitarhero3-*$.");
              PreparedStatement pstmt = conn.prepareStatement(sql);
              ResultSet rs = pstmt.executeQuery()) {
             
