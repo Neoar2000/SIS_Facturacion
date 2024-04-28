@@ -15,6 +15,7 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
 import javax.swing.text.AbstractDocument;
 import java.sql.*;
+import java.text.SimpleDateFormat;
 import java.awt.event.*;
 import java.io.File; // Para manejar archivos.
 import java.io.FileNotFoundException;
@@ -804,7 +805,7 @@ public class FacturacionInterfaz extends JFrame {
         System.out.println("Valor de NIT/CI recibido: " + nitCi);
         System.out.println("Valor de nombre recibido: " + nombre);
         if (metodoPago != null) {
-            String contenidoQR = "https://siat.impuestos.gob.bo/consulta/QR?nit=258522020&cuf=11B054D4E9C5DB0508FDEE1EE3074B48E7DB04C1162CB5E03E6F88E74&numero=76520&t=1";
+            String contenidoQR = "https://pilotosiat.impuestos.gob.bo/consulta/QR?nit=" + nitCi + "&cuf=valorCuf&numero=valorNroFactura&t=valorTamaño";
             agregarCodigoQR(contenidoQR);  // Genera el QR
 
             // Obtener la fecha y la hora actual
@@ -1072,12 +1073,12 @@ public class FacturacionInterfaz extends JFrame {
 
     private void mostrarReporteDeVentasDiarias() {
         JDialog reporteDialog = new JDialog(this, "Reporte de Ventas Diarias", true);
-        reporteDialog.setSize(1000, 800);  // Tamaño ajustado para mayor visibilidad
+        reporteDialog.setSize(1050, 800);  // Tamaño ajustado para mayor visibilidad
         reporteDialog.setLocationRelativeTo(this);
     
         // Modelo de la tabla para el reporte
         DefaultTableModel modelo = new DefaultTableModel();
-        modelo.addColumn("Fecha");
+        modelo.addColumn("Fecha Emision");
         modelo.addColumn("NIT/CI");
         modelo.addColumn("Nombre");
         modelo.addColumn("Total Venta");
@@ -1131,7 +1132,8 @@ public class FacturacionInterfaz extends JFrame {
             
             while (rs.next()) {
                 Object[] fila = new Object[5];
-                fila[0] = rs.getDate("fecha");
+                SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+                fila[0] = dateFormat.format(rs.getTimestamp("fecha"));
                 fila[1] = rs.getString("nit_ci");
                 fila[2] = rs.getString("nombre");
                 fila[3] = rs.getString("total");
