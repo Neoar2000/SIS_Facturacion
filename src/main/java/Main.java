@@ -1,7 +1,5 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.*;
 import java.sql.*;
 
@@ -17,6 +15,7 @@ public class Main extends JFrame {
 
     public Main() {
         initializeGUI();
+        setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("/icon.png")));
     }
 
     // Constructor que acepta un objeto FacturacionInterfaz

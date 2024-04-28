@@ -81,6 +81,9 @@ public class FacturacionInterfaz extends JFrame {
         setLocationRelativeTo(null);
         UIManager.put("OptionPane.messageFont", new Font("Arial", Font.BOLD, 20));
 
+        // Cargar el ícono personalizado
+        setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("/icon.png")));
+
         cargarProductosDesdeBaseDeDatos();
 
         nitCiTextField = new JTextField(15);
@@ -347,6 +350,9 @@ public class FacturacionInterfaz extends JFrame {
         productosDialog.setTitle("Selección de Productos");
         productosDialog.setSize(500, 400); // Aumentar el tamaño de la ventana
         productosDialog.setLocationRelativeTo(null);
+
+        // Cargar y establecer el ícono del diálogo
+        productosDialog.setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("/icon.png")));
     
         // Crear tabla para mostrar productos
         DefaultTableModel productosTableModel = new DefaultTableModel() {
@@ -465,6 +471,9 @@ public class FacturacionInterfaz extends JFrame {
         datosClienteDialog.setSize(400, 200); // Aumentar el tamaño del cuadro de diálogo
         datosClienteDialog.setModal(true); // Hacer que el cuadro de diálogo sea modal
         datosClienteDialog.setLocationRelativeTo(this); // Centrar el cuadro de diálogo respecto a la ventana principal
+
+        // Cargar y establecer el ícono del diálogo
+        datosClienteDialog.setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("/icon.png")));
     
         // Crear un JPanel para el contenido del cuadro de diálogo
         JPanel datosClientePanel = new JPanel(new GridBagLayout());
