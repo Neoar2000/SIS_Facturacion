@@ -76,7 +76,7 @@ public class FacturacionInterfaz extends JFrame {
 
     public FacturacionInterfaz() {
         listaClientes = new ArrayList<>();
-        setTitle("Facturacion NEO");
+        setTitle("Facturacion NEO v1.0");
         setExtendedState(JFrame.MAXIMIZED_BOTH); // Establecer la ventana a pantalla completa
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -106,7 +106,7 @@ public class FacturacionInterfaz extends JFrame {
         JPanel headerPanel = new JPanel();
         headerPanel.setLayout(new FlowLayout(FlowLayout.CENTER)); // Alineación centrada
 
-        JLabel headerLabel = new JLabel("Facturacion NEO");
+        JLabel headerLabel = new JLabel("Facturacion NEO v1.0");
         headerLabel.setFont(new Font(headerLabel.getFont().getName(), Font.BOLD, 36)); // Fuente grande y negrita
         headerLabel.setForeground(Color.BLUE); // Cambiar color de texto a azul
 
