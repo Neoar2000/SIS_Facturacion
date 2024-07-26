@@ -32,6 +32,7 @@ import javax.swing.filechooser.FileNameExtensionFilter; // Para filtrar archivos
 import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
 
@@ -67,6 +68,7 @@ public class FacturacionInterfaz extends JFrame {
     private JTextField nombreTextField;
     private JDialog datosClienteDialog;
     private double granTotal = 0;
+    private double totalVentasDiarias = 0.0;
     private byte[] qrCodeBytes;
 
     // Lista de productos de ejemplo
@@ -1075,6 +1077,7 @@ public class FacturacionInterfaz extends JFrame {
         JDialog reporteDialog = new JDialog(this, "Reporte de Ventas Diarias", true);
         reporteDialog.setSize(1050, 800);  // Tamaño ajustado para mayor visibilidad
         reporteDialog.setLocationRelativeTo(this);
+        reporteDialog.setLayout(new BorderLayout());
     
         // Modelo de la tabla para el reporte
         DefaultTableModel modelo = new DefaultTableModel();
@@ -1097,32 +1100,46 @@ public class FacturacionInterfaz extends JFrame {
     
         // Cargar datos en la tabla
         cargarDatosReporte(modelo);
+    
+        // Crear un panel para el total de ventas diarias y botones
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+    
+        // Mostrar el total de las ventas diarias
+        JLabel totalLabel = new JLabel(String.format("Total Ventas del Dia: Bs. %.2f", totalVentasDiarias));
+        totalLabel.setFont(new Font("Arial", Font.BOLD, 28)); // Aumentar el tamaño del texto del label
+        totalLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        bottomPanel.add(totalLabel, BorderLayout.NORTH);
 
-        
+        // Añadir una línea separadora
+        JSeparator separator = new JSeparator();
+        bottomPanel.add(separator, BorderLayout.CENTER);
+    
         // Panel para botones de acciones
         JPanel actionPanel = new JPanel();
-
+    
         JButton csvButton = new JButton("Guardar CSV");
         csvButton.setFont(new Font("Arial", Font.BOLD, 20));
         csvButton.addActionListener(e -> guardarCSV(modelo));
-
+    
         JButton pdfButton = new JButton("Guardar PDF");
         pdfButton.setFont(new Font("Arial", Font.BOLD, 20));
         pdfButton.addActionListener(e -> guardarPDF(modelo));
-
+    
         JButton salirButton = new JButton("Salir");
         salirButton.setFont(new Font("Arial", Font.BOLD, 20));
         salirButton.addActionListener(e -> reporteDialog.dispose());
-
+    
         actionPanel.add(csvButton);
         actionPanel.add(pdfButton);
         actionPanel.add(salirButton);
-
-        reporteDialog.add(actionPanel, BorderLayout.SOUTH);
+    
+        bottomPanel.add(actionPanel, BorderLayout.SOUTH);
+    
+        reporteDialog.add(bottomPanel, BorderLayout.SOUTH);
     
         // Mostrar el diálogo
         reporteDialog.setVisible(true);
-    }        
+    }                
 
     private void cargarDatosReporte(DefaultTableModel modelo) {
         String sql = "SELECT fecha, nit_ci, nombre, total, metodo_pago FROM ventas WHERE DATE(fecha) = CURDATE()";
@@ -1130,14 +1147,18 @@ public class FacturacionInterfaz extends JFrame {
              PreparedStatement pstmt = conn.prepareStatement(sql);
              ResultSet rs = pstmt.executeQuery()) {
             
+            totalVentasDiarias = 0.0; // Reiniciar el total de ventas diarias
+            
             while (rs.next()) {
                 Object[] fila = new Object[5];
                 SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
                 fila[0] = dateFormat.format(rs.getTimestamp("fecha"));
                 fila[1] = rs.getString("nit_ci");
                 fila[2] = rs.getString("nombre");
-                fila[3] = rs.getString("total");
+                fila[3] = rs.getDouble("total"); // Cambiar a getDouble para obtener el total
                 fila[4] = rs.getString("metodo_pago");
+                
+                totalVentasDiarias += rs.getDouble("total"); // Sumar el total de cada venta al total de ventas diarias
                 
                 modelo.addRow(fila);
             }
@@ -1171,6 +1192,8 @@ public class FacturacionInterfaz extends JFrame {
                 }
                 sb.append("\n");
             }
+            // Incluir el total de ventas diarias
+            sb.append("Total de Ventas Diarias,Bs. " + totalVentasDiarias + "\n");
             pw.write(sb.toString());
             JOptionPane.showMessageDialog(this, "Archivo CSV guardado exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
         } catch (Exception ex) {
@@ -1180,7 +1203,7 @@ public class FacturacionInterfaz extends JFrame {
     }
 }
 
-    private void guardarPDF(DefaultTableModel modelo) {
+private void guardarPDF(DefaultTableModel modelo) {
     JFileChooser fileChooser = new JFileChooser();
     fileChooser.setDialogTitle("Guardar como PDF");
     fileChooser.setFileFilter(new FileNameExtensionFilter("PDF file (*.pdf)", "pdf"));
@@ -1215,6 +1238,12 @@ public class FacturacionInterfaz extends JFrame {
                     table.addCell(modelo.getValueAt(rows, cols).toString());
                 }
             }
+
+            // Agregar el total de ventas diarias al final de la tabla
+            PdfPCell totalLabelCell = new PdfPCell(new Paragraph("Total de Ventas Diarias"));
+            totalLabelCell.setColspan(modelo.getColumnCount() - 1);
+            table.addCell(totalLabelCell);
+            table.addCell(String.format("Bs. %.2f", totalVentasDiarias));
 
             document.add(table);
             document.close();
